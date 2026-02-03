@@ -1,0 +1,20 @@
+'use client'
+
+import { useQuery } from '@tanstack/react-query'
+
+import { getKeywords } from '../api/getKeywords'
+
+import type { KeywordItemType } from '@/entities/keyword'
+
+type UseKeywordListOptions = {
+  categoryId: number | null
+  accessToken: string
+}
+
+export function useKeywordList({ categoryId, accessToken }: UseKeywordListOptions) {
+  return useQuery<KeywordItemType[]>({
+    queryKey: ['keywords', categoryId],
+    queryFn: () => getKeywords(accessToken, categoryId),
+    enabled: Boolean(accessToken) && categoryId !== null,
+  })
+}

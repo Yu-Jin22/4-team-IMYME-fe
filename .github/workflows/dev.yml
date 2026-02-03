@@ -1,0 +1,411 @@
+name: Frontend CI/CD v2
+
+on:
+  pull_request:
+    branches:
+      - dev
+  push:
+    branches:
+      - dev
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: frontend-cicd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # 1) CI
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Node.js 설정
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 3. pnpm 설치
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      # 4. pnpm 캐시
+      - name: Cache pnpm
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      # 5. 의존성 설치
+      - name: Install dependencies
+        run: pnpm install
+
+      # 6. 정적 분석 (에러 로그 캡처)
+      - name: Run ESLint
+        id: lint
+        continue-on-error: true
+        run: |
+          mkdir -p error-logs
+          pnpm lint 2>&1 | tee error-logs/lint.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Run Prettier
+        id: prettier
+        continue-on-error: true
+        run: |
+          pnpm prettier --check . 2>&1 | tee error-logs/prettier.log
+          exit ${PIPESTATUS[0]}
+
+      # 7. 타입 체크
+      - name: Type Check
+        id: typecheck
+        continue-on-error: true
+        run: |
+          pnpm tsc --noEmit 2>&1 | tee error-logs/typecheck.log
+          exit ${PIPESTATUS[0]}
+
+      # 에러 로그 업로드 (검사 실패 시)
+      - name: Upload error logs
+        if: steps.lint.outcome == 'failure' || steps.prettier.outcome == 'failure' || steps.typecheck.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs
+          path: error-logs/
+          retention-days: 1
+
+      # 검사 실패 시 CI 실패 처리
+      - name: Check for failures
+        if: steps.lint.outcome == 'failure' || steps.prettier.outcome == 'failure' || steps.typecheck.outcome == 'failure'
+        run: |
+          echo "❌ CI checks failed:"
+          [ "${{ steps.lint.outcome }}" == "failure" ] && echo "  - ESLint failed"
+          [ "${{ steps.prettier.outcome }}" == "failure" ] && echo "  - Prettier failed"
+          [ "${{ steps.typecheck.outcome }}" == "failure" ] && echo "  - TypeScript failed"
+          exit 1
+
+      # 8. 빌드
+      - name: Build
+        env:
+          NEXT_PUBLIC_KAKAO_REST_API_KEY: ${{ secrets.NEXT_PUBLIC_KAKAO_REST_API_KEY }}
+          NEXT_PUBLIC_KAKAO_REDIRECT_URI: ${{ secrets.NEXT_PUBLIC_DEV_KAKAO_REDIRECT_URI }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_DEV_API_BASE_URL }}
+          NODE_ENV: ${{ secrets.NODE_ENV }}
+          NEXT_PUBLIC_SERVER_URL: ${{ secrets.NEXT_PUBLIC_DEV_SERVER_URL }}
+          NEXT_PUBLIC_GOOGLE_ANALYTICS: ${{ secrets.NEXT_PUBLIC_DEV_GOOGLE_ANALYTICS }}
+
+        run: |
+          echo "=== Build env check (masked) ==="
+          echo "NODE_ENV=$NODE_ENV"
+          echo "NEXT_PUBLIC_SERVER_URL=${NEXT_PUBLIC_SERVER_URL}"
+          echo "NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_DEV_API_BASE_URL}"
+          echo "NEXT_PUBLIC_KAKAO_REDIRECT_URI=${NEXT_PUBLIC_DEV_KAKAO_REDIRECT_URI}"
+          echo "NEXT_PUBLIC_GOOGLE_ANALYTICS=${NEXT_PUBLIC_DEV_GOOGLE_ANALYTICS}"
+
+          pnpm next build
+
+      # 9. 이전 아티팩트 삭제
+      - name: Delete old artifacts
+        if: github.ref == 'refs/heads/dev' || github.event.pull_request.merged == true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            for (const artifact of artifacts.data.artifacts) {
+              if (artifact.name === 'frontend-dev-latest') {
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: artifact.id,
+                });
+              }
+            }
+
+      # 10. 배포용 파일 준비
+      - name: Prepare deployment files
+        if: github.ref == 'refs/heads/dev' || github.event.pull_request.merged == true
+        run: |
+          mkdir -p deploy
+          cp -r .next deploy/
+          cp -r public deploy/ || true
+          cp package.json deploy/
+          cp pnpm-lock.yaml deploy/
+
+      # 11. 빌드 결과 업로드
+      - name: Upload artifact
+        if: github.ref == 'refs/heads/dev' || github.event.pull_request.merged == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dev-latest
+          path: deploy/
+          retention-days: 15
+          overwrite: true
+          include-hidden-files: true
+
+  ci-notify-success:
+    needs: ci
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord CI success
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: success
+          title: '🟢 Frontend CI Success'
+          content: '<@&${{ secrets.FRONTEND_ROLE_ID }}> 프론트엔드 CI 성공!'
+          color: 0x00ff00
+
+  ci-notify-failure:
+    needs: ci
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download error logs
+        uses: actions/download-artifact@v4
+        with:
+          name: error-logs
+          path: error-logs/
+        continue-on-error: true
+
+      - name: Prepare error message
+        id: error_msg
+        run: |
+          ERROR_MSG=""
+
+          if [ -f error-logs/lint.log ]; then
+            LINT_ERRORS=$(grep -E "warning|error" error-logs/lint.log | head -20 || true)
+            if [ -n "$LINT_ERRORS" ]; then
+              ERROR_MSG="${ERROR_MSG}📋 **ESLint:**\n\`\`\`\n${LINT_ERRORS}\n\`\`\`\n"
+            fi
+          fi
+
+          if [ -f error-logs/prettier.log ]; then
+            PRETTIER_ERRORS=$(grep -E "^\[warn\]|Code style issues" error-logs/prettier.log | head -20 || true)
+            if [ -n "$PRETTIER_ERRORS" ]; then
+              ERROR_MSG="${ERROR_MSG}🎨 **Prettier:**\n\`\`\`\n${PRETTIER_ERRORS}\n\`\`\`\n"
+            fi
+          fi
+
+          if [ -f error-logs/typecheck.log ]; then
+            TSC_ERRORS=$(grep -E "error TS|\.tsx?\(" error-logs/typecheck.log | head -20 || true)
+            if [ -n "$TSC_ERRORS" ]; then
+              ERROR_MSG="${ERROR_MSG}📝 **TypeScript:**\n\`\`\`\n${TSC_ERRORS}\n\`\`\`\n"
+            fi
+          fi
+
+          if [ -z "$ERROR_MSG" ]; then
+            ERROR_MSG="빌드 또는 기타 단계에서 오류가 발생했습니다. GitHub Actions 로그를 확인하세요."
+          fi
+
+          # GitHub Actions output에 저장 (멀티라인)
+          echo "msg<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$ERROR_MSG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Discord CI failure
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: failure
+          title: '🔴 Frontend CI Failed'
+          content: '<@&${{ secrets.FRONTEND_ROLE_ID }}> 프론트엔드 CI 실패!'
+          description: ${{ steps.error_msg.outputs.msg }}
+          color: 0xff0000
+
+  # 2) CD
+  cd:
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+
+    steps:
+      # 0️⃣ Runner IP 획득 및 보안 그룹 추가
+      - name: Get Runner IP
+        id: ip
+        run: echo "ipv4=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+
+      - name: Add IP to Security Group
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr "${{ steps.ip.outputs.ipv4 }}/32"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ap-northeast-2
+
+      # 1. SSH 설정
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEV_SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.DEV_SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      # 2. 아티팩트 다운로드
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dev-latest
+          path: ./frontend-build
+
+      # 3. 서버 전송 (압축해서 빠르게)
+      - name: Copy artifact to dev server
+        run: |
+          tar -czf frontend-build.tar.gz -C ./frontend-build .
+          scp -i ~/.ssh/id_rsa frontend-build.tar.gz ubuntu@${{ secrets.DEV_SERVER_HOST }}:/home/ubuntu/mine/frontend/
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.DEV_SERVER_HOST }} 'rm -rf /home/ubuntu/mine/frontend/build/* && tar -xzf /home/ubuntu/mine/frontend/frontend-build.tar.gz -C /home/ubuntu/mine/frontend/build && rm /home/ubuntu/mine/frontend/frontend-build.tar.gz'
+
+      # 4. 배포 (release/current 구조)
+      - name: Deploy to Dev Server
+        run: |
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.DEV_SERVER_HOST }} 'bash -s' <<'EOF'
+          set -e
+
+          APP_DIR=/home/ubuntu/mine/frontend
+          RELEASES_DIR=$APP_DIR/releases
+          SHARED_DIR=$APP_DIR/shared
+          RELEASE_ID=$(date +%Y%m%d%H%M%S)
+
+          CURRENT_LINK=$APP_DIR/current
+          RELEASE_DIR=$RELEASES_DIR/$RELEASE_ID
+
+          mkdir -p "$RELEASE_DIR"
+
+          # 1. 빌드 아티팩트 복사 (.next, package.json, pnpm-lock.yaml)
+          cp -r $APP_DIR/build/.next "$RELEASE_DIR/"
+          cp -r $APP_DIR/build/public "$RELEASE_DIR/"
+          cp $APP_DIR/build/package.json "$RELEASE_DIR/"
+          cp $APP_DIR/build/pnpm-lock.yaml "$RELEASE_DIR/"
+
+          # 2. 의존성 설치
+          cd "$RELEASE_DIR"
+          pnpm install --prod --ignore-scripts --force
+
+
+          # 3. current 심볼릭 링크 교체
+          rm -rf "$CURRENT_LINK"
+          ln -s "$RELEASE_DIR" "$CURRENT_LINK"
+
+          # 4. 이전 release 3개만 유지
+          ls -1dt "$RELEASES_DIR"/* | tail -n +4 | xargs -r rm -rf
+
+          # 5. PM2로 프론트 서버 재시작
+          cd "$CURRENT_LINK"
+
+          # shared env 로드 (없으면 실패하게)
+          ENV_FILE="$SHARED_DIR/.env"
+          if [ ! -f "$ENV_FILE" ]; then
+            echo "❌ env file not found: $ENV_FILE"
+            exit 1
+          fi
+
+          # env를 export 상태로 로드
+          set -a
+          source "$ENV_FILE"
+          set +a
+
+          pm2 delete frontend || true
+          pm2 start "npx next start -p 3000" \
+            --name frontend \
+            --time
+
+          # 6. Health Check
+          echo "🔍 Frontend health check"
+          for i in {1..10}; do
+            if curl -sf http://127.0.0.1:3000/api/health > /dev/null; then
+              echo "✅ Frontend health check passed"
+              break
+            fi
+            echo "⏳ Waiting for frontend..."
+            sleep 3
+          done
+
+          if ! curl -sf http://127.0.0.1:3000/api/health > /dev/null; then
+            echo "❌ Frontend health check failed"
+            pm2 logs frontend --lines 50
+            exit 1
+          fi
+
+
+          EOF
+
+      # 5. 배포 후 스모크 테스트
+      - name: Post-deploy Smoke Test
+        run: |
+          set -euo pipefail
+
+          BASE_URL="${{ secrets.DEV_BASE_URL }}"
+
+          echo "🔎 Smoke 1) Health check: ${BASE_URL}/api/health"
+          curl -fsS "${BASE_URL}/api/health" >/dev/null
+
+          echo "🔎 Smoke 2) Main page (follow redirect) : ${BASE_URL}/"
+          curl -fsSL -o /tmp/home.html "${BASE_URL}/" >/dev/null
+
+          # HTML인지 최소 확인(502/JSON/리다이렉트 루프 같은 경우 걸러냄)
+          grep -qi "<html" /tmp/home.html || {
+            echo "❌ Main page is not HTML"
+            head -n 40 /tmp/home.html || true
+            exit 1
+          }
+
+          echo "✅ Frontend smoke tests passed"
+
+      # 6. 보안 그룹에서 IP 제거 (항상 실행)
+      - name: Remove IP from Security Group
+        if: always()
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr "${{ steps.ip.outputs.ipv4 }}/32"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ap-northeast-2
+
+  cd-notify-success:
+    needs: cd
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord CD success
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: success
+          title: '🟢 Frontend Deploy Success'
+          content: '프론트엔드 개발 서버 배포 완료!'
+          color: 0x00ff00
+
+  cd-notify-failure:
+    needs: cd
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord CD failure
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: failure
+          title: '🔴 Frontend Deploy Failed'
+          content: '<@&${{ secrets.FRONTEND_ROLE_ID }}> 프론트엔드 개발 서포 배포 실패!'
+          color: 0xff0000

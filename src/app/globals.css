@@ -1,0 +1,163 @@
+@import 'tailwindcss';
+
+:root {
+  --color-primary: 64 141 254;
+  --color-secondary: 214 231 255;
+  --color-primary-foreground: 255 255 255;
+  --color-background: 250 252 255;
+  --color-foreground: 15 23 42;
+  --color-muted: 248 250 252;
+  --color-muted-foreground: 100 116 139;
+  --color-border: 226 232 240;
+  --color-border-primary: 64 141 254;
+  --frame-max-width: 420px;
+  --frame-min-width: 390px;
+  --frame-shadow: rgba(100, 100, 100, 0.2) 0 0 29px 0;
+  --frame-outer-padding-x: 16px;
+  --frame-outer-padding-y: 24px;
+}
+
+@layer base {
+  body {
+    background-color: rgb(var(--color-background));
+    color: rgb(var(--color-foreground));
+    margin: 0;
+    height: 100%;
+  }
+}
+
+.app-shell {
+  background-color: #fff;
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.app-frame {
+  background-color: rgb(var(--color-background));
+  margin: 0 auto;
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 640px) {
+  .app-frame {
+    box-shadow: var(--frame-shadow);
+    max-width: var(--frame-max-width);
+    min-width: var(--frame-min-width);
+  }
+}
+
+@layer components {
+  .btn-login {
+    background-color: rgb(var(--color-primary));
+    color: white;
+  }
+
+  .modal-bg {
+    background-color: rgb(var(--color-background));
+  }
+
+  .modal-btn-primary {
+    height: 50px;
+    width: 250px;
+    background-color: rgb(var(--color-background));
+    border-color: rgb(var(--color-primary));
+    border-width: 1px;
+    color: rgb(var(--color-primary));
+  }
+
+  .modal-btn-primary:hover,
+  .modal-btn-primary:active {
+    background-color: rgb(var(--color-primary));
+    color: rgb(var(--color-primary-foreground));
+  }
+
+  .mode-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+    gap: 8px;
+    border-color: rgb(var(--color-primary));
+    border-width: 1px;
+    color: rgb(var(--color-primary));
+    min-width: 350px;
+    min-height: 120px;
+    justify-content: space-evenly;
+    margin-top: 10%;
+    background-color: #fff;
+  }
+
+  .border-primary {
+    border-color: rgb(var(--color-primary));
+  }
+
+  .border-secondary {
+    border-color: rgb(var(--color-secondary));
+  }
+
+  .bg-primary {
+    background-color: rgb(var(--color-primary));
+  }
+
+  .bg-secondary {
+    background-color: rgb(var(--color-secondary));
+  }
+
+  .text-primary {
+    color: rgb(var(--color-primary));
+  }
+
+  .text-secondary {
+    color: rgb(var(--color-secondary));
+  }
+
+  .filtering-tab-frame {
+    background-color: rgb(var(--color-background));
+    margin: 0 auto;
+    min-height: 50vh;
+    max-height: 60vh;
+    width: 100%;
+    height: 60vh;
+    max-width: var(--frame-max-width);
+    min-width: var(--frame-min-width);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .confirm-btn-primary {
+    width: 100px;
+    height: 40px;
+    border-width: 1px;
+    border-color: rgb(var(--color-primary));
+    color: rgb(var(--color-primary));
+  }
+
+  .confirm-btn-primary:hover,
+  .confirm-btn-primary:active {
+    background-color: rgb(var(--color-primary));
+    color: rgb(var(--color-primary-foreground));
+  }
+
+  .cancel-btn-primary {
+    width: 100px;
+    height: 40px;
+    border-width: 1px;
+    border-color: red;
+    color: red;
+  }
+
+  .cancel-btn-primary:hover,
+  .cancel-btn-primary:active {
+    background-color: red;
+    color: white;
+  }
+
+  .record-confirm-btn {
+    width: 360px;
+    height: 40px;
+    background-color: rgb(var(--color-secondary));
+  }
+}
