@@ -27,6 +27,7 @@ export function Avatar({ avatar_src, size, onError }: AvatarProps) {
   const isFallback = !avatar_src
   const resolvedSrc = avatar_src ? normalizeAvatarSrc(avatar_src) : DefaultAvatar
 
+  console.log(resolvedSrc)
   return (
     <div
       style={{ width: size, height: size }}

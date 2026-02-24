@@ -47,11 +47,12 @@ export function RoomList({ categoryId }: RoomListProps) {
     <div className={LIST_CLASSNAME}>
       {rooms.map((room) => (
         <Room
-          key={room.id}
-          title={room.roomName}
-          category={room.categoryName}
+          key={room.room.id}
+          title={room.room.name}
+          category={room.category.name}
           participantsLabel={getParticipantsLabel(room)}
-          hostName={room.hostNickname}
+          hostName={room.host.nickname}
+          hostProfileImageUrl={room.host.profileImageUrl}
           onEnter={() => {}}
         />
       ))}

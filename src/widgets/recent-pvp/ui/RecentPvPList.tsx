@@ -42,13 +42,13 @@ export function RecentPvPList() {
     <div className={LIST_CLASSNAME}>
       {recentHistories.map((history) => (
         <PvPCard
-          key={history.id}
-          title={`${history.categoryName} 대결`}
-          resultVariant={history.isWinner ? 'win' : 'lose'}
-          opponentName={history.opponentNickname}
-          categoryName={history.categoryName}
-          keywordName={history.keywordName}
-          onClick={() => router.push('/mypage')}
+          key={history.historyId}
+          title={history.room.name}
+          resultVariant={history.myResult.isWinner ? 'win' : 'lose'}
+          opponentName={history.opponent.nickname}
+          categoryName={history.category.name}
+          keywordName={history.keyword.name}
+          onClick={() => router.push(`/mypage`)}
           onDelete={() => {}}
         />
       ))}

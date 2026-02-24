@@ -27,7 +27,7 @@ export function PvPDetailsPage() {
   const pvpCardDetails = pvpCardDetailsQuery.data
 
   return (
-    <div className="flex h-full w-full flex-1 flex-col">
+    <div className="flex h-full w-full flex-1 flex-col gap-4">
       <ModeHeader
         mode="pvp"
         step="feedback"
@@ -41,8 +41,8 @@ export function PvPDetailsPage() {
           avatarUrl: pvpCardDetails?.myResult?.user?.profileImageUrl ?? '',
         }}
         rightProfile={{
-          name: pvpCardDetails?.opponentResult?.nickname ?? '',
-          avatarUrl: pvpCardDetails?.opponentResult?.profileImageUrl ?? '',
+          name: pvpCardDetails?.opponentResult?.user?.nickname ?? '',
+          avatarUrl: pvpCardDetails?.opponentResult?.user?.profileImageUrl ?? '',
         }}
       />
       <PvPKeyword keywordName={pvpCardDetails?.keyword?.name ?? ''} />
