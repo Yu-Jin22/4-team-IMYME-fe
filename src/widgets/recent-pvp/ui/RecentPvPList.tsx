@@ -1,18 +1,54 @@
+'use client'
+
 import { PvPCard } from '@/entities/pvp-card'
+import { useAccessToken } from '@/features/auth'
+import { useMyPvPCardList } from '@/features/my-pvp-card'
+import { StatusMessage } from '@/shared'
+
+import type { MyPvPHistoryItem } from '@/features/my-pvp-card'
 
 const LIST_CLASSNAME = 'mt-5 flex flex-col items-center gap-4'
+const RECENT_PVP_LIMIT = 3
+const EMPTY_MESSAGE = '최근 대결 기록이 없습니다.'
+const ERROR_MESSAGE = '최근 대결 기록을 불러오지 못했습니다.'
+const LOADING_MESSAGE = '최근 대결 기록을 불러오는 중입니다...'
+
+const getRecentHistoryItems = (histories: MyPvPHistoryItem[]) => histories
+
 export function RecentPvPList() {
+  const accessToken = useAccessToken()
+  const myPvPCardListQuery = useMyPvPCardList(accessToken, { size: RECENT_PVP_LIMIT })
+
+  if (myPvPCardListQuery.isLoading) {
+    return <StatusMessage message={LOADING_MESSAGE} />
+  }
+
+  if (myPvPCardListQuery.isError || myPvPCardListQuery.data?.ok === false) {
+    return <StatusMessage message={ERROR_MESSAGE} />
+  }
+
+  const recentHistories = myPvPCardListQuery.data?.ok
+    ? getRecentHistoryItems(myPvPCardListQuery.data.data.histories)
+    : []
+
+  if (recentHistories.length === 0) {
+    return <StatusMessage message={EMPTY_MESSAGE} />
+  }
+
   return (
     <div className={LIST_CLASSNAME}>
-      <PvPCard
-        title="DatabasePvP"
-        resultVariant="win"
-        opponentName="데베왕"
-        categoryName="DB"
-        keywordName="Database"
-        onClick={() => {}}
-        onDelete={() => {}}
-      />
+      {recentHistories.map((history) => (
+        <PvPCard
+          key={history.id}
+          title={`${history.categoryName} 대결`}
+          resultVariant={history.isWinner ? 'win' : 'lose'}
+          opponentName={history.opponentNickname}
+          categoryName={history.categoryName}
+          keywordName={history.keywordName}
+          onClick={() => {}}
+          onDelete={() => {}}
+        />
+      ))}
     </div>
   )
 }
