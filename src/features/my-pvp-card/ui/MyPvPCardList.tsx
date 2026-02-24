@@ -54,13 +54,13 @@ export function MyPvPCardList({ selectedCategory, selectedKeyword }: MyPvPCardLi
     <div className={LIST_CLASSNAME}>
       {historyItems.map((history) => (
         <PvPCard
-          key={history.id}
-          title={`${history.categoryName} 대결`}
-          resultVariant={history.isWinner ? 'win' : 'lose'}
-          categoryName={history.categoryName}
-          keywordName={history.keywordName}
-          opponentName={history.opponentNickname}
-          onClick={() => router.push(`/mypage/pvps/${history.roomId}`)}
+          key={history.historyId}
+          title={history.room.name}
+          resultVariant={history.myResult.isWinner ? 'win' : 'lose'}
+          categoryName={history.category.name}
+          keywordName={history.keyword.name}
+          opponentName={history.opponent.nickname}
+          onClick={() => router.push(`/mypage/pvps/${history.room.id}`)}
         />
       ))}
     </div>

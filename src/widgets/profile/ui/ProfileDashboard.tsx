@@ -96,7 +96,7 @@ export function ProfileDashboard({
   const handleBackButton = () => {
     // 뒤로가기
     if (!showBackButton) return
-    router.back()
+    router.push('/main')
   }
 
   const isProfileReady = Boolean(profile.nickname || profile.profileImageUrl)

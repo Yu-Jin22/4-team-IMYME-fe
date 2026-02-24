@@ -5,7 +5,7 @@ type PvPKeywordProps = {
   label?: string
 }
 
-const WRAPPER_CLASSNAME = 'mt-5 flex w-full flex-col items-center justify-center gap-4'
+const WRAPPER_CLASSNAME = 'flex w-full flex-col items-center justify-center gap-4'
 const KEYWORD_BOX_CLASSNAME = 'bg-secondary flex h-12 w-80 items-center justify-center rounded-2xl'
 const DEFAULT_LABEL = '대결 키워드'
 

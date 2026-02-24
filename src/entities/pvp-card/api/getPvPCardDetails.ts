@@ -62,7 +62,7 @@ export type PvPCardDetails = {
   category: PvPCardResultSubject
   keyword: PvPCardResultSubject
   myResult: PvPCardPlayerResult
-  opponentResult: PvPUser
+  opponentResult: PvPCardPlayerResult
   winner: PvPCardWinner
   finishedAt: string
   message: string

@@ -13,17 +13,36 @@ export type GetMyPvPCardListParams = {
   size?: number
 }
 
-export type MyPvPHistoryItem = {
+export type MyPvPHistoryRoom = {
   id: number
-  roomId: number
-  categoryName: string
-  keywordName: string
-  myRole: MyPvPCardListRole
-  myScore: number
-  myLevel: number
-  opponentNickname: string
-  opponentScore: number
+  name: string
+}
+
+export type MyPvPHistorySubject = {
+  id: number
+  name: string
+}
+
+export type MyPvPHistoryMyResult = {
+  score: number
   isWinner: boolean
+}
+
+export type MyPvPHistoryOpponent = {
+  id: number
+  nickname: string
+  profileImageUrl: string
+  score: number
+}
+
+export type MyPvPHistoryItem = {
+  historyId: number
+  room: MyPvPHistoryRoom
+  category: MyPvPHistorySubject
+  keyword: MyPvPHistorySubject
+  myRole: MyPvPCardListRole
+  myResult: MyPvPHistoryMyResult
+  opponent: MyPvPHistoryOpponent
   isHidden: boolean
   finishedAt: string
 }
