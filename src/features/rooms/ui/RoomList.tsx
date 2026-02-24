@@ -18,9 +18,16 @@ const FILLED_PARTICIPANTS_LABEL = '2/2'
 const getParticipantsLabel = (room: PvPRoomListItem) =>
   room.status === OPEN_ROOM_STATUS ? OPEN_PARTICIPANTS_LABEL : FILLED_PARTICIPANTS_LABEL
 
-export function RoomList() {
+type RoomListProps = {
+  categoryId?: number
+}
+
+export function RoomList({ categoryId }: RoomListProps) {
   const accessToken = useAccessToken()
-  const roomListQuery = useRoomList(accessToken, { status: OPEN_ROOM_STATUS })
+  const roomListQuery = useRoomList(accessToken, {
+    categoryId,
+    status: OPEN_ROOM_STATUS,
+  })
 
   if (roomListQuery.isLoading) {
     return <StatusMessage message={LOADING_MESSAGE} />

@@ -29,7 +29,7 @@ export function PvPRoomsPage() {
         showResetButton={false}
         variant="category"
       />
-      <RoomList />
+      <RoomList categoryId={selectedCategory?.id} />
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useParams, useRouter } from 'next/navigation'
+
 import { useAccessToken } from '@/features/auth'
 
 export function PvPDetailsPage() {

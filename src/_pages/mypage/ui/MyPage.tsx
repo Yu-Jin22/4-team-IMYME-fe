@@ -41,7 +41,10 @@ export function MyPage() {
           selectedKeyword={selectedKeyword}
         />
       ) : (
-        <MyPvPCardList />
+        <MyPvPCardList
+          selectedCategory={selectedCategory}
+          selectedKeyword={selectedKeyword}
+        />
       )}
     </div>
   )
