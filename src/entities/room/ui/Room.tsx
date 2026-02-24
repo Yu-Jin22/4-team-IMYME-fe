@@ -1,6 +1,7 @@
 'use client'
 
 import { ArrowRight } from 'lucide-react'
+import Image from 'next/image'
 
 import { Button } from '@/shared'
 
@@ -9,6 +10,7 @@ type RoomProps = {
   category: string
   participantsLabel: string
   hostName: string
+  hostProfileImageUrl?: string
   onEnter?: () => void
 }
 
@@ -20,7 +22,14 @@ const HOST_INFO_CLASSNAME = 'flex items-center gap-2 pl-4'
 const HOST_AVATAR_CLASSNAME = 'h-8 w-8 rounded-full bg-gray-300'
 const ENTER_ICON_SIZE = 16
 
-export function Room({ title, category, participantsLabel, hostName, onEnter }: RoomProps) {
+export function Room({
+  title,
+  category,
+  participantsLabel,
+  hostName,
+  hostProfileImageUrl,
+  onEnter,
+}: RoomProps) {
   return (
     <div className={CARD_CLASSNAME}>
       <div className={HEADER_ROW_CLASSNAME}>
@@ -32,7 +41,15 @@ export function Room({ title, category, participantsLabel, hostName, onEnter }: 
       </div>
       <div className={HOST_ROW_CLASSNAME}>
         <div className={HOST_INFO_CLASSNAME}>
-          <div className={HOST_AVATAR_CLASSNAME}></div>
+          {hostProfileImageUrl ? (
+            <Image
+              src={hostProfileImageUrl}
+              alt={`${hostName} profile`}
+              className={[HOST_AVATAR_CLASSNAME, 'object-cover'].join(' ')}
+            />
+          ) : (
+            <div className={HOST_AVATAR_CLASSNAME}></div>
+          )}
           <p className="text-sm">{hostName}</p>
         </div>
         <Button

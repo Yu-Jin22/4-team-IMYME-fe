@@ -17,14 +17,29 @@ export type GetPvPRoomsParams = {
   size?: number
 }
 
-export type PvPRoomListItem = {
+export type PvPRoomListRoom = {
   id: number
-  categoryId: number
-  categoryName: string
-  roomName: string
+  name: string
+}
+
+export type PvPRoomListCategory = {
+  id: number
+  name: string
+}
+
+export type PvPRoomListUser = {
+  id: number
+  nickname: string
+  profileImageUrl: string
+  level: number
+}
+
+export type PvPRoomListItem = {
+  room: PvPRoomListRoom
+  category: PvPRoomListCategory
   status: PvPRoomStatus
-  hostUserId: number
-  hostNickname: string
+  host: PvPRoomListUser
+  guest: PvPRoomListUser
   createdAt: string
 }
 
