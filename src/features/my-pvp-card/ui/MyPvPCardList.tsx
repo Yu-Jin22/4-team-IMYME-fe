@@ -1,5 +1,7 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+
 import { CategoryItemType } from '@/entities/category'
 import { KeywordItemType } from '@/entities/keyword'
 import { PvPCard } from '@/entities/pvp-card'
@@ -22,6 +24,7 @@ type MyPvPCardListProps = {
   selectedKeyword: KeywordItemType | null
 }
 export function MyPvPCardList({ selectedCategory, selectedKeyword }: MyPvPCardListProps) {
+  const router = useRouter()
   const accessToken = useAccessToken()
   const hasFilteringCondition = Boolean(selectedCategory) || Boolean(selectedKeyword)
   const myPvPCardListQuery = useMyPvPCardList(accessToken, {
@@ -57,6 +60,7 @@ export function MyPvPCardList({ selectedCategory, selectedKeyword }: MyPvPCardLi
           categoryName={history.categoryName}
           keywordName={history.keywordName}
           opponentName={history.opponentNickname}
+          onClick={() => router.push(`/mypage/pvps/${history.roomId}`)}
         />
       ))}
     </div>
