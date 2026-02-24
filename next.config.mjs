@@ -39,7 +39,22 @@ const nextConfig = {
       },
       {
         protocol: 'http',
+        hostname: 'dev.imymemine.kr',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'dev.imymemine.kr',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
         hostname: 'img1.kakaocdn.net',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'imymemine.kr',
         pathname: '/**',
       },
     ],
