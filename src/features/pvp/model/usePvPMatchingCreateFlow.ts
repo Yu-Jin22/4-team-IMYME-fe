@@ -3,6 +3,9 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
+// import { createPvPRoom } from '@/entities/room'
+// import { useAccessToken } from '@/features/auth'
+
 import type { CategoryItemType } from '@/entities/category'
 
 const COMPLETE_DELAY_MS = 10_000
@@ -21,7 +24,7 @@ type UsePvPMatchingCreateFlowResult = {
   createButtonVariant: 'category' | 'create' | 'waiting' | 'complete'
   handleCategorySelect: (category: CategoryItemType) => void
   handleRoomNameChange: (value: string) => void
-  handleCreateButtonClick: () => void
+  handleCreateButtonClick: () => Promise<void>
 }
 
 export function usePvPMatchingCreateFlow({
@@ -34,6 +37,7 @@ export function usePvPMatchingCreateFlow({
   const [roomName, setRoomName] = useState('')
 
   const router = useRouter()
+  // const accessToken = useAccessToken()
   /*
   매칭 상대 10초 대기 후 매칭 완료 상태로 전환
   추후 소켓 적용 시 소켓 상태에 따라 전환 예정
@@ -82,12 +86,23 @@ export function usePvPMatchingCreateFlow({
     setRoomName(value)
   }
 
-  const handleCreateButtonClick = () => {
+  const handleCreateButtonClick = async () => {
     // 카테고리 단계에서는 다음으로 이동
     if (!isNextClicked) {
       setIsNextClicked(true)
       return
     }
+
+    // if (!accessToken || !selectedCategory) return
+    // if (roomName.trim().length === 0) return
+
+    // const createdRoom = await createPvPRoom(accessToken, {
+    //   categoryId: selectedCategory.id,
+    //   roomName: roomName.trim(),
+    // })
+
+    // if (!createdRoom) return
+
     // 방 생성 요청 → 대기 상태로 전환
     if (!isWaiting) {
       setIsWaiting(true)
