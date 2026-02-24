@@ -1,1 +1,6 @@
 export { PvPCard } from './ui/PvPCard'
+export { PvPCategory } from './ui/PvPCategory'
+export { PvPKeyword } from './ui/PvPKeyword'
+export { getPvPCardDetails } from './api/getPvPCardDetails'
+export { usePvPCardDetails } from './model/usePvPCardDetails'
+export type { PvPCardDetails } from './api/getPvPCardDetails'

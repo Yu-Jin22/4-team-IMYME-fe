@@ -3,7 +3,7 @@
 import { BackButton, ProgressField } from '@/shared'
 
 type LevelUpStep = 'category' | 'keyword' | 'recording' | 'feedback'
-type PvPStep = 'matching_list' | 'matching_enter' | 'matching_create' | 'battle'
+type PvPStep = 'matching_list' | 'matching_enter' | 'matching_create' | 'battle' | 'feedback'
 
 type ModeHeaderProps =
   | {
@@ -38,6 +38,7 @@ const PVP_SUBTITLE_BY_STEP: Record<PvPStep, string> = {
   matching_enter: '매칭 입장하기',
   matching_create: '매칭 만들기',
   battle: '대결 중',
+  feedback: '대결 피드백',
 }
 
 export function ModeHeader({

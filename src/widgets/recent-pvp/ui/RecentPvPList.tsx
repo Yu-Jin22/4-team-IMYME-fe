@@ -1,5 +1,7 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+
 import { PvPCard } from '@/entities/pvp-card'
 import { useAccessToken } from '@/features/auth'
 import { useMyPvPCardList } from '@/features/my-pvp-card'
@@ -16,6 +18,7 @@ const LOADING_MESSAGE = '최근 대결 기록을 불러오는 중입니다...'
 const getRecentHistoryItems = (histories: MyPvPHistoryItem[]) => histories
 
 export function RecentPvPList() {
+  const router = useRouter()
   const accessToken = useAccessToken()
   const myPvPCardListQuery = useMyPvPCardList(accessToken, { size: RECENT_PVP_LIMIT })
 
@@ -45,7 +48,7 @@ export function RecentPvPList() {
           opponentName={history.opponentNickname}
           categoryName={history.categoryName}
           keywordName={history.keywordName}
-          onClick={() => {}}
+          onClick={() => router.push('/mypage')}
           onDelete={() => {}}
         />
       ))}

@@ -3,7 +3,7 @@
 type SubjectCardVariant = 'category' | 'keyword'
 
 type SubjectCardProps = {
-  variant: SubjectCardVariant
+  variant?: SubjectCardVariant
   title: string
   value: string
 }
@@ -17,7 +17,7 @@ const CARD_CLASSNAME =
   'border-secondary flex h-20 w-40 flex-col items-center justify-start text-center gap-2 rounded-2xl border bg-white overflow-scroll'
 
 export function SubjectCard({ variant, title, value }: SubjectCardProps) {
-  const displayTitle = title || VARIANT_TITLE[variant]
+  const displayTitle = variant ? VARIANT_TITLE[variant] : title
 
   return (
     <div className={CARD_CLASSNAME}>
