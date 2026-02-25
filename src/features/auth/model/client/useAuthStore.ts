@@ -8,11 +8,11 @@ export const useAuthStore = create(
   immer(
     combine({ accessToken: '', accessTokenExpiresAtMs: 0 }, (set) => ({
       actions: {
-        setAccessToken: (token: string, expiresInMs?: number) => {
+        setAccessToken: (token: string, expiresAtMs?: number) => {
           set((state) => {
             state.accessToken = token
-            // expiresIn은 "남은 시간(ms)"이므로, 스케줄링에 쓰기 쉽게 절대 시각(ms)으로 변환해 저장한다.
-            state.accessTokenExpiresAtMs = expiresInMs ? Date.now() + expiresInMs : 0
+            // 서버 응답 expiresIn은 실제로 "토큰 만료 시점(ms epoch)"이므로 그대로 저장한다.
+            state.accessTokenExpiresAtMs = expiresAtMs ?? 0
           })
         },
         clearAccessToken: () => {
