@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared'
+import { httpClient } from '@/shared/api'
 
 import type { CategoryItemType } from '@/entities/category'
 
