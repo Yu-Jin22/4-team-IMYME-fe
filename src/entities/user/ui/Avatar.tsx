@@ -34,6 +34,7 @@ export function Avatar({ avatar_src, size, onError }: AvatarProps) {
       className="relative flex items-center justify-center overflow-hidden rounded-full"
     >
       <Image
+        priority
         src={resolvedSrc}
         alt="profile image"
         width={size}

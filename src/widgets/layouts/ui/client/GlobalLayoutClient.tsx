@@ -1,7 +1,7 @@
 'use client'
 
 import { Provider } from '@/features/provider'
-import { GoogleAnalytics } from '@/shared'
+import { GoogleAnalytics } from '@/shared/lib/GoogleAnalytics'
 import { WebVitalsTracker } from '@/shared/lib/WebVitalsTracker'
 import { Toaster } from '@/shared/ui/sonner'
 

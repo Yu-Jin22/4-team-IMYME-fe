@@ -5,8 +5,14 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
-import { MenuModal } from '@/features/header-menu'
 import { useMenuModal, useProfileEditModal } from '@/widgets/header'
+
+const loadMenuModal = () => import('@/features/header-menu').then((m) => m.MenuModal)
+
+const MenuModalLazy = dynamic(loadMenuModal, {
+  ssr: false,
+  loading: () => null,
+})
 
 // ✅ Lazy loaded
 // ✅ import 함수를 분리해서 preload에 재사용
@@ -56,7 +62,7 @@ export function Header({ showMenu = true, goMain = false }: HeaderProps) {
       </span>
       {showMenu ? (
         <>
-          <MenuModal
+          <MenuModalLazy
             trigger={<Menu className="h-5 w-5 cursor-pointer" />}
             open={menuOpen}
             onOpenChange={handleMenuOpenChange}
