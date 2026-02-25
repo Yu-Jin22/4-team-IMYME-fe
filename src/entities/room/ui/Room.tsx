@@ -19,7 +19,7 @@ const CARD_CLASSNAME =
 const HEADER_ROW_CLASSNAME = 'flex w-full items-start justify-between px-4 pt-2'
 const HOST_ROW_CLASSNAME = 'flex w-full items-center justify-between'
 const HOST_INFO_CLASSNAME = 'flex items-center gap-2 pl-4'
-const HOST_AVATAR_CLASSNAME = 'h-8 w-8 rounded-full bg-gray-300'
+const HOST_AVATAR_CLASSNAME = 'rounded-full bg-gray-300 object-cover h-10 w-10'
 const ENTER_ICON_SIZE = 16
 
 export function Room({
@@ -45,7 +45,9 @@ export function Room({
             <Image
               src={hostProfileImageUrl}
               alt={`${hostName} profile`}
-              className={[HOST_AVATAR_CLASSNAME, 'object-cover'].join(' ')}
+              className={HOST_AVATAR_CLASSNAME}
+              width={40}
+              height={40}
             />
           ) : (
             <div className={HOST_AVATAR_CLASSNAME}></div>
