@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PROTECTED_PATHS = ['/main', '/mypage', '/levelup', '/']
+const PROTECTED_PATHS = ['/main', '/mypage', '/levelup', '/pvp']
 const LOGIN_PATH = '/login'
 const MAIN_PATH = '/main'
 const REFRESH_TOKEN_COOKIE = 'refresh_token'
@@ -76,5 +76,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/main/:path*', '/mypage/:path*', '/levelup/:path*'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.[^/]+$).*)'],
 }
