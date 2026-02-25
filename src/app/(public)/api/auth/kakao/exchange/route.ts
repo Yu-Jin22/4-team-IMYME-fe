@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { NextRequest, NextResponse } from 'next/server'
 
-import { httpClient } from '@/shared'
+import { httpClient } from '@/shared/api'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
 
     const accessToken = response.data?.data?.accessToken
     const refreshToken = response.data?.data?.refreshToken
+    const expiresIn = response.data?.data?.expiresIn
     const user = response.data?.data?.user
 
     if (!accessToken || !user) {
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
 
     const res = NextResponse.json({
       accessToken,
+      expiresIn,
       deviceUuid,
       user: {
         nickname: user.nickname,
