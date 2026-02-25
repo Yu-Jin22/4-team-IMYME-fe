@@ -63,12 +63,13 @@ export function KakaoCallbackPage() {
 
       const data = (await res.json()) as {
         accessToken: string
+        expiresIn?: number
         deviceUuid: string
         user: UserProfile
       }
 
-      // ✅ 3) access token → zustand
-      setAccessToken(data.accessToken)
+      // ✅ 3) access token + expiresIn → zustand (AuthBootstrap 선제 갱신 스케줄링용)
+      setAccessToken(data.accessToken, data.expiresIn)
 
       router.replace(DEFAULT_REDIRECT_PATH)
     }
