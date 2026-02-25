@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { httpClient } from '@/shared'
+import { httpClient } from '@/shared/api'
 
 const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://dev.imymemine.kr/server'
 

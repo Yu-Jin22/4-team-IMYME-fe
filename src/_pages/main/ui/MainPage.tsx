@@ -1,10 +1,22 @@
-'use client'
+import dynamic from 'next/dynamic'
 
 import { ModeButton } from '@/features/mode'
 import { RecentListHeader } from '@/shared'
 import { ProfileDashboard } from '@/widgets/profile'
-import { RecentCardList } from '@/widgets/recent-card'
-import { RecentPvPList } from '@/widgets/recent-pvp'
+
+const RecentCardListLazy = dynamic(
+  () => import('@/widgets/recent-card').then((module) => module.RecentCardList),
+  {
+    loading: () => <p className="mt-10 text-center">최근 학습 목록을 불러오는 중입니다.</p>,
+  },
+)
+
+const RecentPvPListLazy = dynamic(
+  () => import('@/widgets/recent-pvp').then((module) => module.RecentPvPList),
+  {
+    loading: () => <p className="mt-10 text-center">최근 대결 목록을 불러오는 중입니다.</p>,
+  },
+)
 
 export function MainPage() {
   return (
@@ -18,12 +30,12 @@ export function MainPage() {
       </div>
       {/* 최근 학습 목록 */}
       <RecentListHeader variant="levelup" />
-      <RecentCardList />
+      <RecentCardListLazy />
       {process.env.NEXT_PUBLIC_PVP_OPEN !== 'true' ? null : (
         <>
           {/* 최근 대결 목록 */}
           <RecentListHeader variant="pvp" />
-          <RecentPvPList />
+          <RecentPvPListLazy />
         </>
       )}
     </div>

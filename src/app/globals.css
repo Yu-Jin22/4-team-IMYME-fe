@@ -17,6 +17,18 @@
   --frame-outer-padding-y: 24px;
 }
 
+@theme inline {
+  --color-primary: rgb(var(--color-primary));
+  --color-secondary: rgb(var(--color-secondary));
+  --color-primary-foreground: rgb(var(--color-primary-foreground));
+  --color-background: rgb(var(--color-background));
+  --color-foreground: rgb(var(--color-foreground));
+  --color-muted: rgb(var(--color-muted));
+  --color-muted-foreground: rgb(var(--color-muted-foreground));
+  --color-border: rgb(var(--color-border));
+  --color-border-primary: rgb(var(--color-border-primary));
+}
+
 @layer base {
   html {
     height: 100%;
@@ -56,117 +68,5 @@
     box-shadow: var(--frame-shadow);
     max-width: var(--frame-max-width);
     min-width: var(--frame-min-width);
-  }
-}
-
-@layer components {
-  .btn-login {
-    background-color: rgb(var(--color-primary));
-    color: white;
-  }
-
-  .modal-bg {
-    background-color: rgb(var(--color-background));
-  }
-
-  .modal-btn-primary {
-    height: 50px;
-    width: 250px;
-    background-color: rgb(var(--color-background));
-    border-color: rgb(var(--color-primary));
-    border-width: 1px;
-    color: rgb(var(--color-primary));
-  }
-
-  .modal-btn-primary:hover,
-  .modal-btn-primary:active {
-    background-color: rgb(var(--color-primary));
-    color: rgb(var(--color-primary-foreground));
-  }
-
-  .mode-btn-primary {
-    display: inline-flex;
-    align-items: center;
-    align-self: center;
-    gap: 8px;
-    border-color: rgb(var(--color-primary));
-    border-width: 1px;
-    color: rgb(var(--color-primary));
-    min-width: 350px;
-    min-height: 120px;
-    justify-content: space-evenly;
-    background-color: #fff;
-    cursor: pointer;
-  }
-
-  .border-primary {
-    border-color: rgb(var(--color-primary));
-  }
-
-  .border-secondary {
-    border-color: rgb(var(--color-secondary));
-  }
-
-  .bg-primary {
-    background-color: rgb(var(--color-primary));
-  }
-
-  .bg-secondary {
-    background-color: rgb(var(--color-secondary));
-  }
-
-  .text-primary {
-    color: rgb(var(--color-primary));
-  }
-
-  .text-secondary {
-    color: rgb(var(--color-secondary));
-  }
-
-  .filtering-tab-frame {
-    background-color: rgb(var(--color-background));
-    margin: 0 auto;
-    min-height: 50vh;
-    max-height: 60vh;
-    width: 100%;
-    height: 60vh;
-    max-width: var(--frame-max-width);
-    min-width: var(--frame-min-width);
-    display: flex;
-    flex-direction: column;
-  }
-
-  .confirm-btn-primary {
-    width: 100px;
-    height: 40px;
-    border-width: 1px;
-    border-color: rgb(var(--color-primary));
-    color: rgb(var(--color-primary));
-  }
-
-  .confirm-btn-primary:hover,
-  .confirm-btn-primary:active {
-    background-color: rgb(var(--color-primary));
-    color: rgb(var(--color-primary-foreground));
-  }
-
-  .cancel-btn-primary {
-    width: 100px;
-    height: 40px;
-    border-width: 1px;
-    border-color: red;
-    color: red;
-  }
-
-  .cancel-btn-primary:hover,
-  .cancel-btn-primary:active {
-    background-color: red;
-    color: white;
-  }
-
-  .record-confirm-btn {
-    width: 360px;
-    height: 40px;
-    background-color: rgb(var(--color-secondary));
   }
 }

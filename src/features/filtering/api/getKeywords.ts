@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared'
+import { httpClient } from '@/shared/api'
 
 import type { KeywordItemType } from '@/entities/keyword'
 
