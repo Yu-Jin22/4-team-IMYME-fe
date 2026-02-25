@@ -29,9 +29,9 @@ const normalizeAvatarSrc = (src: string) => {
 
 export function Avatar({ avatar_src, size, onError }: AvatarProps) {
   const isFallback = !avatar_src
-  const resolvedSrc = avatar_src ? normalizeAvatarSrc(avatar_src) : DefaultAvatar
-  const [loadedSrc, setLoadedSrc] = useState<string | null>(isFallback ? resolvedSrc : null)
-  const isImageLoaded = isFallback || loadedSrc === resolvedSrc
+  const src = isFallback ? DefaultAvatar : normalizeAvatarSrc(avatar_src)
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(isFallback ? src : null)
+  const isImageLoaded = isFallback || loadedSrc === src
 
   return (
     <div
@@ -40,7 +40,7 @@ export function Avatar({ avatar_src, size, onError }: AvatarProps) {
     >
       {isImageLoaded ? null : <div className={PLACEHOLDER_CLASSNAME} />}
       <Image
-        src={resolvedSrc}
+        src={src}
         alt="profile image"
         width={size}
         height={size}
@@ -48,11 +48,10 @@ export function Avatar({ avatar_src, size, onError }: AvatarProps) {
           'h-full w-full object-cover object-center transition-opacity duration-200',
           isImageLoaded ? 'opacity-100' : 'opacity-0',
         ].join(' ')}
-        loading="eager"
         onError={onError}
-        fetchPriority={isFallback ? 'auto' : 'high'}
+        priority={isFallback}
         onLoad={() => {
-          setLoadedSrc(resolvedSrc)
+          setLoadedSrc(src)
         }}
       />
     </div>
