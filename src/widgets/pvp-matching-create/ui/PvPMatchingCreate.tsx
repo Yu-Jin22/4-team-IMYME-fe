@@ -40,7 +40,9 @@ export function PvPMatchingCreate({
     createButtonVariant,
     handleCategorySelect,
     handleRoomNameChange,
+    handleRoomNameBlur,
     handleCreateButtonClick,
+    handleExitConfirm: handleSocketExitConfirm,
   } = usePvPMatchingCreateFlow({ onExitGuardChange })
 
   // 단계 분기 (카테고리 선택 단계 여부)
@@ -48,6 +50,12 @@ export function PvPMatchingCreate({
 
   // 매칭 상태 표시 여부 (대기 또는 완료)
   const shouldShowMatchingStatus = isWaiting || isComplete
+
+  const handleAlertExitConfirm = async () => {
+    const isExitSuccess = await handleSocketExitConfirm()
+    if (!isExitSuccess) return
+    onExitConfirm?.()
+  }
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -63,6 +71,7 @@ export function PvPMatchingCreate({
             selectedCategoryName={selectedCategory?.categoryName}
             roomName={roomName}
             onRoomNameChange={handleRoomNameChange}
+            onRoomNameBlur={handleRoomNameBlur}
             disabled={isWaiting || isComplete}
           />
           {shouldShowMatchingStatus ? (
@@ -89,7 +98,7 @@ export function PvPMatchingCreate({
         description={'현재 진행 중인 매칭이 취소됩니다.'}
         action={'나가기'}
         cancel={'계속하기'}
-        onAction={onExitConfirm}
+        onAction={handleAlertExitConfirm}
         onCancel={onExitCancel}
       />
     </div>

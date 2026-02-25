@@ -6,6 +6,7 @@ type RoomNameSettingProps = {
   selectedCategoryName?: string
   roomName: string
   onRoomNameChange: (value: string) => void
+  onRoomNameBlur?: () => void
   disabled?: boolean
 }
 
@@ -20,6 +21,7 @@ export function RoomNameSetting({
   selectedCategoryName,
   roomName,
   onRoomNameChange,
+  onRoomNameBlur,
   disabled = false,
 }: RoomNameSettingProps) {
   return (
@@ -41,6 +43,7 @@ export function RoomNameSetting({
             className="border-secondary"
             value={roomName}
             onChange={(event) => onRoomNameChange(event.target.value)}
+            onBlur={onRoomNameBlur}
             disabled={disabled}
           />
           <FieldDescription>방 이름은 1자 이상 10자 이하로 입력해주세요.</FieldDescription>

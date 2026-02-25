@@ -20,7 +20,10 @@ const LABEL_BY_VARIANT: Record<RoomCreateButtonVariant, string> = {
 }
 
 const WRAPPER_CLASSNAME = 'mt-auto flex w-full justify-center pb-6'
-const BUTTON_CLASSNAME = 'bg-secondary h-10 w-87.5 max-w-87.5'
+const BUTTON_SIZE_CLASSNAME = 'h-10 w-87.5 max-w-87.5'
+const DEFAULT_BUTTON_TONE_CLASSNAME = 'bg-secondary text-primary'
+const ENABLED_CREATE_BUTTON_TONE_CLASSNAME =
+  'bg-primary text-primary-foreground hover:bg-primary/90'
 
 export function RoomCreateButton({ variant, disabled, onClick }: RoomCreateButtonProps) {
   const [currentVariant, setCurrentVariant] = useState<RoomCreateButtonVariant>(variant)
@@ -38,10 +41,15 @@ export function RoomCreateButton({ variant, disabled, onClick }: RoomCreateButto
     }
   }
 
+  const isCreateActionEnabled = currentVariant === 'create' && !disabled
+  const buttonToneClassName = isCreateActionEnabled
+    ? ENABLED_CREATE_BUTTON_TONE_CLASSNAME
+    : DEFAULT_BUTTON_TONE_CLASSNAME
+
   return (
     <div className={WRAPPER_CLASSNAME}>
       <Button
-        className={BUTTON_CLASSNAME}
+        className={`${BUTTON_SIZE_CLASSNAME} ${buttonToneClassName}`}
         disabled={disabled}
         onClick={handleClick}
       >

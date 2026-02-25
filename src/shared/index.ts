@@ -23,6 +23,7 @@ export {
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 export { ModeHeader } from './ui/ModeHeader'
 export { GoogleAnalytics } from './lib/GoogleAnalytics'
+export { buildSockJsUrl, useStompClient } from './lib/useStompClient'
 export { Button } from './ui/button'
 export { ListTab } from './ui/ListTab'
 export { StatusMessage } from './ui/StatusMessage'

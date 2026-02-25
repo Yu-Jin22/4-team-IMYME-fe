@@ -20,16 +20,29 @@ export type PvPRoomKeyword = {
   name: string
 }
 
-export type PvPRoomDetails = {
+export type PvPRoomUserSummary = {
   id: number
-  categoryId: number
-  categoryName: string
-  roomName: string
+  nickname: string
+  profileImageUrl: string
+  level: number
+}
+
+export type PvPRoomCategorySummary = {
+  id: number
+  name: string
+}
+
+export type PvPRoomInfoSummary = {
+  id: number
+  name: string
+}
+
+export type PvPRoomDetails = {
+  room: PvPRoomInfoSummary
+  category: PvPRoomCategorySummary
   status: PvPRoomStatus
-  hostUserId: number
-  hostNickname: string
-  guestUserId: number
-  guestNickname: string
+  host: PvPRoomUserSummary
+  guest: PvPRoomUserSummary
   keyword: PvPRoomKeyword
   createdAt: string
   matchedAt: string

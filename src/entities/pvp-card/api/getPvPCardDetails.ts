@@ -54,6 +54,7 @@ export type PvPCardOpponentInfo = {
 export type PvPCardWinner = {
   userId: number
   nickname: string
+  profileImageUrl: string
 }
 
 export type PvPCardDetails = {
