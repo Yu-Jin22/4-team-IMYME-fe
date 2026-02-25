@@ -47,7 +47,12 @@ export function PvPDetailsPage() {
       />
       <PvPKeyword keywordName={pvpCardDetails?.keyword?.name ?? ''} />
       <PvPWinnerProfileCard
-        profile={<PvPProfile name={pvpCardDetails?.winner?.nickname ?? ''} />}
+        profile={
+          <PvPProfile
+            name={pvpCardDetails?.winner?.nickname ?? ''}
+            avatarUrl={pvpCardDetails?.winner.profileImageUrl}
+          />
+        }
       />
       <PvPFeedbackPanel feedback={pvpCardDetails?.myResult?.feedback} />
     </div>
