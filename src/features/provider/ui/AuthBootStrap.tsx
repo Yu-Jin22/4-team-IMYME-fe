@@ -62,10 +62,6 @@ export function AuthBootstrap() {
           access_token?: string
           expiresIn?: number
         }
-        console.log('[auth-refresh] success', {
-          hasAccessToken: Boolean(data.access_token),
-          expiresIn: data.expiresIn,
-        })
         if (!data.access_token) {
           handleRefreshFailure('missing_access_token')
           return
@@ -88,12 +84,6 @@ export function AuthBootstrap() {
 
     // access token이 이미 있으면 만료 시각 기준으로 다음 refresh를 예약한다.
     const refreshDelayMs = getRefreshDelayMs(accessTokenExpiresAtMs)
-    console.log('[auth-refresh] schedule', {
-      hasAccessToken: Boolean(accessToken),
-      accessTokenExpiresAtMs,
-      refreshDelayMs,
-      now: Date.now(),
-    })
     refreshTimer = setTimeout(() => {
       void run()
     }, refreshDelayMs)
