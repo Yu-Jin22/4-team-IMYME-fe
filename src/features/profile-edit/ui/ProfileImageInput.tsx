@@ -1,6 +1,7 @@
-import Image, { type StaticImageData } from 'next/image'
+import { type StaticImageData } from 'next/image'
 import { type ChangeEventHandler } from 'react'
 
+import { Avatar } from '@/entities/user'
 import { HelperText } from '@/shared'
 import { Input } from '@/shared/ui/input'
 
@@ -27,13 +28,10 @@ export function ProfileImageInput({
         className={`bg-muted flex items-center justify-center rounded-full ${IMAGE_SIZE_CLASS}`}
         htmlFor={inputId}
       >
-        <Image
-          unoptimized
-          src={imageSrc}
+        <Avatar
+          avatar_src={imageSrc}
           alt="프로필 이미지"
-          className={`rounded-full object-cover ${IMAGE_SIZE_CLASS}`}
-          width={150}
-          height={150}
+          size={150}
         />
         <Input
           className="sr-only"
