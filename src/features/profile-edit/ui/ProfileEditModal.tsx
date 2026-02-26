@@ -1,6 +1,12 @@
 'use client'
 
-import { useProfile, useProfileImage, useSetProfile, getMyProfile } from '@/entities/user'
+import {
+  useProfile,
+  useProfileImage,
+  useSetProfile,
+  getMyProfile,
+  useMyProfileQuery,
+} from '@/entities/user'
 import { useAccessToken } from '@/features/auth'
 import {
   ProfileImageInput,
@@ -51,6 +57,10 @@ export function ProfileEditModal({ open, onOpenChange }: ProfileEditModalProps) 
   const accessToken = useAccessToken()
   const profile = useProfile()
   const setProfile = useSetProfile()
+  // 서버 기준 최신 프로필(만료된 presigned URL 재발급 반영 가능)
+  const { data: myProfile } = useMyProfileQuery(accessToken, {
+    enabled: open && Boolean(accessToken),
+  })
 
   const handleProfileEdit = async () => {
     if (!accessToken) return
@@ -99,9 +109,10 @@ export function ProfileEditModal({ open, onOpenChange }: ProfileEditModalProps) 
     onOpenChange(false)
   }
 
+  // 로컬 store에 남아있는 마지막 프로필 이미지 URL (query 지연/실패 시 fallback)
   const storeProfileImageUrl = useProfileImage()
 
-  // ✅ 우선순위: (미리보기 props) > (store) > (기본)
+  // ✅ 우선순위: (미리보기 props) > (myProfile query) > (store) > (기본)
 
   return (
     <Dialog
@@ -117,9 +128,11 @@ export function ProfileEditModal({ open, onOpenChange }: ProfileEditModalProps) 
           imageSrc={
             imagePreview
               ? imagePreview
-              : storeProfileImageUrl
-                ? storeProfileImageUrl
-                : defaultAvatar
+              : myProfile?.profileImageUrl
+                ? myProfile.profileImageUrl
+                : storeProfileImageUrl
+                  ? storeProfileImageUrl
+                  : defaultAvatar
           }
           onChange={handleFileChange}
           acceptTypes={acceptTypes}
