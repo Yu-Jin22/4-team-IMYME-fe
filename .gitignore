@@ -100,3 +100,5 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 uploads/
+build.sh
+docker-compose.local.yml
