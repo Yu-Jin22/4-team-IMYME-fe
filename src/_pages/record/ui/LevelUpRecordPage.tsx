@@ -1,7 +1,7 @@
 'use client'
 
 import { FeedbackLoader } from '@/features/levelup-feedback'
-import { MicrophoneBox, useRecordController } from '@/features/record'
+import { MicrophoneBox, useLevelUpRecordController } from '@/features/record'
 import { ModeHeader, AlertModal, RecordTipBox, SubjectHeader, Button } from '@/shared'
 
 const RECORD_PROGRESS_VALUE = 100
@@ -25,7 +25,7 @@ export function LevelUpRecordPage() {
     handleMicAlertOpenChange,
     handleBackAlertOpenChange,
     handleRecordingComplete,
-  } = useRecordController({ mode: 'levelup' })
+  } = useLevelUpRecordController()
 
   return (
     <div className="flex h-full w-full flex-1 flex-col">

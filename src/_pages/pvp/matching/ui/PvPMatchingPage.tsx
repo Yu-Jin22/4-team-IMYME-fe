@@ -5,18 +5,16 @@ import { useQuery } from '@tanstack/react-query'
 // ✅ 라우트 파라미터(roomId) 읽기 + 뒤로가기 이동에 사용
 import { useParams, useRouter } from 'next/navigation'
 // ✅ 상태/구독/콜백/수명주기 관리
-import { useCallback, useEffect, useRef, useState } from 'react'
-// ✅ 요청 실패 시 사용자에게 토스트 노출
-import { toast } from 'sonner'
+import { useEffect, useRef, useState } from 'react'
 
 // ✅ PvP 화면 표시용 도메인 UI (카테고리/키워드)
 import { PvPCategory, PvPKeyword } from '@/entities/pvp-card'
 // ✅ 인증 토큰 가져오기
 import { useAccessToken } from '@/features/auth'
 // ✅ PvP 도메인 API/참가자 UI
-import { joinPvPRoom, PvPParticipants, startPvPRecording } from '@/features/pvp'
-// ✅ 공통 녹음 UI/로직 (PVP 모드로 사용)
-import { MicrophoneBox, useRecordController } from '@/features/record'
+import { joinPvPRoom, PvPParticipants, usePvPRecordController } from '@/features/pvp'
+// ✅ 공통 녹음 UI
+import { MicrophoneBox } from '@/features/record'
 // ✅ 공통 헤더/안내 UI + STOMP 소켓 훅
 import { ModeHeader, RecordTipBox, StatusMessage, useStompClient } from '@/shared'
 
@@ -27,7 +25,6 @@ import type { IMessage, StompSubscription } from '@stomp/stompjs'
 const LOADING_MESSAGE = '매칭 방에 입장하는 중입니다...'
 const ERROR_MESSAGE = '매칭 방에 입장하지 못했습니다.'
 const INVALID_ROOM_ID_MESSAGE = '잘못된 방 정보입니다.'
-const START_RECORDING_ERROR_MESSAGE = '녹음 시작 요청에 실패했습니다. 다시 시도해주세요.'
 const EMPTY_GUEST_NAME = '...'
 // ✅ 소켓 메시지 타입/방 상태 문자열 상수
 const STATUS_CHANGE_MESSAGE_TYPE = 'STATUS_CHANGE'
@@ -104,8 +101,6 @@ export function PvPMatchingPage() {
   const roomIdRef = useRef<number | null>(null)
   // ✅ 현재 구독 객체 보관 (재구독/해제용)
   const roomSubscriptionRef = useRef<StompSubscription | null>(null)
-  // ✅ 로컬 녹음 시작 중복 호출 방지 플래그
-  const isStartingLocalRecordingRef = useRef(false)
   // ✅ 소켓으로 들어온 최신 방 상태 (join 응답 상태보다 우선)
   const [liveRoomStatus, setLiveRoomStatus] = useState<string | null>(null)
   // ✅ THINKING 시점에 서버가 보낸 실시간 키워드명
@@ -114,16 +109,6 @@ export function PvPMatchingPage() {
   const [thinkingEndsAtMs, setThinkingEndsAtMs] = useState<number | null>(null)
   // ✅ 카운트다운 갱신용 현재 시각 (1초마다 업데이트)
   const [countdownNowMs, setCountdownNowMs] = useState(() => Date.now())
-  // ✅ 공통 녹음 컨트롤러를 PVP 모드로 사용 (warmup 없이 녹음)
-  const {
-    isStartingWarmup,
-    warmupError,
-    handleMicClick,
-    isRecording,
-    isPaused,
-    elapsedSeconds,
-    recordedBlob,
-  } = useRecordController({ mode: 'pvp' })
   // ✅ URL 파라미터 문자열을 숫자로 변환
   const roomId = Number(params.id)
   // ✅ 잘못된 roomId(예: NaN) 방어
@@ -218,24 +203,6 @@ export function PvPMatchingPage() {
     router.back()
   }
 
-  // ✅ "아직 로컬 녹음이 시작되지 않았을 때만" 녹음 시작
-  //    - THINKING에서 start-recording API 성공 후
-  //    - 또는 STATUS_CHANGE(RECORDING) 수신 후 자동 시작
-  const startLocalRecordingIfNeeded = useCallback(async () => {
-    // 이미 녹음 중이거나 녹음본이 있으면 중복 시작 금지
-    if (isRecording || Boolean(recordedBlob)) return
-    // 녹음 시작 비동기 처리 중이면 중복 호출 금지
-    if (isStartingLocalRecordingRef.current) return
-
-    isStartingLocalRecordingRef.current = true
-    try {
-      // useRecordController의 마이크 클릭 로직(권한/녹음 시작)을 재사용
-      await handleMicClick()
-    } finally {
-      isStartingLocalRecordingRef.current = false
-    }
-  }, [handleMicClick, isRecording, recordedBlob])
-
   // ✅ join 성공 후 roomId ref 저장 + 소켓 연결 시작
   useEffect(() => {
     if (!roomJoinQuery.data?.ok) return
@@ -267,18 +234,25 @@ export function PvPMatchingPage() {
     }
   }, [disconnectMatchingSocket])
 
-  // ✅ 상태가 RECORDING이면 로컬 녹음을 자동 시작
-  //    - THINKING에서 서버가 RECORDING으로 바뀐 뒤 들어온 경우
-  //    - 페이지 새로고침 후 join 응답이 이미 RECORDING 상태인 경우
-  useEffect(() => {
-    const joinedRoomDetails = roomJoinQuery.data?.ok ? roomJoinQuery.data.data : null
-    if (!joinedRoomDetails) return
+  const joinedRoomDetails = roomJoinQuery.data?.ok ? roomJoinQuery.data.data : null
+  const roomStatusForController = liveRoomStatus ?? joinedRoomDetails?.status ?? null
+  const roomIdForController = joinedRoomDetails?.room.id ?? null
 
-    const currentRoomStatus = liveRoomStatus ?? joinedRoomDetails.status
-    if (currentRoomStatus !== RECORDING_ROOM_STATUS) return
-
-    void startLocalRecordingIfNeeded()
-  }, [liveRoomStatus, roomJoinQuery.data, startLocalRecordingIfNeeded])
+  // ✅ PVP 전용 녹음 컨트롤러: THINKING/RECORDING 상태에 따라 녹음 시작 로직 캡슐화
+  const {
+    isStartingWarmup,
+    warmupError,
+    isRecording,
+    isPaused,
+    elapsedSeconds,
+    recordedBlob,
+    isMicInteractionAllowed,
+    handlePvPMicClick,
+  } = usePvPRecordController({
+    accessToken,
+    roomId: roomIdForController,
+    roomStatus: roomStatusForController,
+  })
 
   // ✅ roomId가 잘못되면 바로 종료
   if (isInvalidRoomId) {
@@ -301,8 +275,6 @@ export function PvPMatchingPage() {
   const roomStatusForDisplay = liveRoomStatus ?? roomDetails.status
   // 녹음 단계 여부 (헤더 step 표시 등에 사용)
   const isRecordingStep = roomStatusForDisplay === RECORDING_ROOM_STATUS
-  // 생각 단계 여부 (마이크 클릭 허용/카운트다운 표시에 사용)
-  const isThinkingStep = roomStatusForDisplay === THINKING_ROOM_STATUS
   // THINKING 소켓 메시지로 받은 키워드가 있으면 우선, 없으면 join 응답 keyword 사용
   const keywordNameForDisplay = thinkingKeywordName ?? roomDetails.keyword?.name ?? ''
   // THINKING 종료까지 남은 시간(ms)
@@ -312,40 +284,6 @@ export function PvPMatchingPage() {
     roomStatusForDisplay === THINKING_ROOM_STATUS &&
     Boolean(thinkingEndsAtMs) &&
     remainingThinkingMs > 0
-  // THINKING/RECORDING(또는 이미 녹음 중) 상태에서만 마이크 상호작용 허용
-  const isMicInteractionAllowed = isThinkingStep || isRecordingStep || isRecording
-
-  // ✅ PvP용 마이크 버튼 동작
-  // - 녹음 중이면 pause/resume 토글
-  // - THINKING이면 start-recording API 호출 후 로컬 녹음 시작
-  // - RECORDING이면 서버 상태 변경에 맞춰 로컬 녹음 시작(미시작 상태일 때)
-  const handlePvPMicClick = async () => {
-    if (isRecording) {
-      await handleMicClick()
-      return
-    }
-
-    if (isThinkingStep) {
-      if (!accessToken) return
-
-      // ✅ 서버에 "이제 녹음 단계로 전환" 요청
-      const startRecordingResult = await startPvPRecording(accessToken, roomDetails.room.id)
-      if (!startRecordingResult.ok) {
-        toast.error(START_RECORDING_ERROR_MESSAGE)
-        return
-      }
-
-      // ✅ 서버 응답 성공 즉시 로컬 녹음도 시작 (이후 STATUS_CHANGE RECORDING도 들어올 수 있음)
-      await startLocalRecordingIfNeeded()
-      return
-    }
-
-    // ✅ 이미 RECORDING 상태라면 로컬 녹음만 시작 시도
-    if (isRecordingStep) {
-      await startLocalRecordingIfNeeded()
-    }
-  }
-
   return (
     // ✅ PvP 매칭/생각/녹음을 한 화면에서 처리하는 컨테이너
     <div className="flex h-full w-full flex-col gap-4">
