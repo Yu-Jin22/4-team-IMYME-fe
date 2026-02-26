@@ -153,6 +153,7 @@ jobs:
           cp -r public deploy/ || true
           cp package.json deploy/
           cp pnpm-lock.yaml deploy/
+          cp next.config.mjs deploy/
 
       # 11. 빌드 결과 업로드
       - name: Upload artifact
@@ -303,6 +304,7 @@ jobs:
           cp -r $APP_DIR/build/public "$RELEASE_DIR/"
           cp $APP_DIR/build/package.json "$RELEASE_DIR/"
           cp $APP_DIR/build/pnpm-lock.yaml "$RELEASE_DIR/"
+          cp $APP_DIR/build/next.config.mjs "$RELEASE_DIR/"
 
           # 2. 의존성 설치
           cd "$RELEASE_DIR"

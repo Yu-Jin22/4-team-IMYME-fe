@@ -1,5 +1,7 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+
 import { Room } from '@/entities/room'
 import { useAccessToken } from '@/features/auth'
 import { useRoomList } from '@/features/pvp'
@@ -23,6 +25,7 @@ type RoomListProps = {
 }
 
 export function RoomList({ categoryId }: RoomListProps) {
+  const router = useRouter()
   const accessToken = useAccessToken()
   const roomListQuery = useRoomList(accessToken, {
     categoryId,
@@ -53,7 +56,12 @@ export function RoomList({ categoryId }: RoomListProps) {
           participantsLabel={getParticipantsLabel(room)}
           hostName={room.host.nickname}
           hostProfileImageUrl={room.host.profileImageUrl}
-          onEnter={() => {}}
+          onClick={() => {
+            router.push(`/pvp/matching/${room.room.id}`)
+          }}
+          onEnter={() => {
+            router.push(`/pvp/matching/${room.room.id}`)
+          }}
         />
       ))}
     </div>
