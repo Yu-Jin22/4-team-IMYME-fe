@@ -4,13 +4,11 @@ import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { useAccessToken } from '@/features/auth/model/client/useAuthStore'
+import { useAccessToken } from '@/features/auth'
 import { FeedbackTab, useCardDetails } from '@/features/levelup-feedback'
 import { useFeedbackData, CardInfo } from '@/features/levelup-feedback'
 import { createAttempt } from '@/features/record'
-import { LevelUpHeader } from '@/shared'
-import { SubjectHeader, formatDate } from '@/shared'
-import { Button } from '@/shared/ui/button'
+import { LevelUpHeader, SubjectHeader, formatDate, Button } from '@/shared'
 
 const INITIAL_ATTEMPT_DURATION_SECONDS = 0
 
@@ -23,6 +21,7 @@ export function CardDetailsPage() {
   const { data } = useCardDetails(accessToken, cardId)
   const { feedbackData } = useFeedbackData(data ?? null)
   const [isCreatingAttempt, setIsCreatingAttempt] = useState(false)
+  const [selectedAttemptNo, setSelectedAttemptNo] = useState<number | null>(null)
 
   const remainingAttempts = data ? Math.max(0, 5 - data.attemptCount) : 0
 
@@ -71,16 +70,19 @@ export function CardDetailsPage() {
       <CardInfo
         createdAt={formatDate(data?.createdAt ?? '')}
         bestLevel={data?.bestLevel ?? null}
-        attemptNo={feedbackData.length}
+        attemptNo={selectedAttemptNo}
         attemptCount={data?.attemptCount ?? null}
       />
-      <FeedbackTab feedbackData={feedbackData} />
+      <FeedbackTab
+        feedbackData={feedbackData}
+        onAttemptNoChange={setSelectedAttemptNo}
+      />
       <div className="flex w-full justify-center">
         <p className="text-sm">남은 학습 횟수: {remainingAttempts}</p>
       </div>
       <div className="mt-auto mb-6 flex w-full justify-center pt-4">
         <Button
-          className="border-primary text-primary bg-var(--color-background) h-10 w-60 rounded-xl border"
+          className="border-primary text-primary bg-var(--color-background) h-10 w-60 cursor-pointer rounded-xl border"
           size={'lg'}
           onClick={handleRestudyClick}
           disabled={remainingAttempts === 0 || isCreatingAttempt}

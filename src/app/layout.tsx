@@ -1,5 +1,6 @@
 import { Provider } from '@/features/provider'
 import { GoogleAnalytics } from '@/shared'
+import { WebVitalsTracker } from '@/shared/lib/WebVitalsTracker'
 import { Toaster } from '@/shared/ui/sonner'
 
 import type { Metadata } from 'next'
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ko">
       <body className="app-shell">
+        <WebVitalsTracker />
         {process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS ? (
           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS} />
         ) : null}
