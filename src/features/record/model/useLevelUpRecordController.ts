@@ -27,7 +27,7 @@ const MIME_TO_CONTENT_TYPE_MAP: Record<string, SupportedAudioContentType> = {
 }
 
 // ✅ 컨트롤러 훅이 외부(UI)에 제공할 값/핸들러 타입
-type UseLevelUpRecordControllerResult = {
+type UseRecordControllerResult = {
   data: ReturnType<typeof useCardDetails>['data']
   isSubmittingFeedback: boolean
   uploadStatus: FeedbackStatus | null
@@ -47,7 +47,15 @@ type UseLevelUpRecordControllerResult = {
   handleRecordingComplete: () => Promise<void>
 }
 
-export function useLevelUpRecordController(): UseLevelUpRecordControllerResult {
+type RecordControllerMode = 'levelup' | 'pvp'
+
+type UseRecordControllerOptions = {
+  mode: RecordControllerMode
+}
+
+export function useRecordController({
+  mode,
+}: UseRecordControllerOptions): UseRecordControllerResult {
   const router = useRouter()
 
   const searchParams = useSearchParams()
@@ -89,6 +97,7 @@ export function useLevelUpRecordController(): UseLevelUpRecordControllerResult {
   const [uploadStatus, setUploadStatus] = useState<FeedbackStatus | null>(null)
 
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
+  const isPvPMode = mode === 'pvp'
 
   // ✅ 워밍업 실패 시 일정 시간 뒤 /main으로 이동
   useEffect(() => {
@@ -105,8 +114,8 @@ export function useLevelUpRecordController(): UseLevelUpRecordControllerResult {
   // - 이미 녹음 중이면: pause/resume 토글
   // - 녹음 중이 아니면: warmup → startRecording
   const handleMicClick = async () => {
-    // ✅ 필수값 없으면 아무것도 하지 않음
-    if (!accessToken || !cardId) return
+    // ✅ 최소한 access token은 필요 (PVP/LevelUp 공통)
+    if (!accessToken) return
 
     // ✅ 이미 녹음 중이면 일시정지/재개 토글
     if (isRecording) {
@@ -118,7 +127,14 @@ export function useLevelUpRecordController(): UseLevelUpRecordControllerResult {
       return
     }
 
-    // ✅ 녹음 시작 전 서버 워밍업
+    // ✅ PVP 모드는 워밍업 없이 바로 녹음 시작
+    if (isPvPMode) {
+      const started = await startRecording()
+      if (!started) return
+      return
+    }
+
+    // ✅ (LevelUp) 녹음 시작 전 서버 워밍업
     setIsStartingWarmup(true)
     const response = await startWarmup(accessToken, { cardId })
     setIsStartingWarmup(false)
@@ -303,4 +319,9 @@ export function useLevelUpRecordController(): UseLevelUpRecordControllerResult {
     handleBackAlertOpenChange,
     handleRecordingComplete,
   }
+}
+
+// ✅ 기존 이름을 사용하는 화면 호환용 wrapper (점진적으로 useRecordController로 교체)
+export function useLevelUpRecordController() {
+  return useRecordController({ mode: 'levelup' })
 }
