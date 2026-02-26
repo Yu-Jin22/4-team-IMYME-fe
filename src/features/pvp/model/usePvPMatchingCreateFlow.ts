@@ -147,6 +147,7 @@ export function usePvPMatchingCreateFlow({
           if (roomStatus === 'MATCHED') {
             setIsWaiting(false)
             setIsComplete(true)
+            router.replace(`/pvp/matching/${roomId}`)
           }
         },
       )

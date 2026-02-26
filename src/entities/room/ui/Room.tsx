@@ -5,12 +5,15 @@ import Image from 'next/image'
 
 import { Button } from '@/shared'
 
+import type { KeyboardEvent } from 'react'
+
 type RoomProps = {
   title: string
   category: string
   participantsLabel: string
   hostName: string
   hostProfileImageUrl?: string
+  onClick?: () => void
   onEnter?: () => void
 }
 
@@ -28,10 +31,25 @@ export function Room({
   participantsLabel,
   hostName,
   hostProfileImageUrl,
+  onClick,
   onEnter,
 }: RoomProps) {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!onClick) return
+    if (event.key !== 'Enter' && event.key !== ' ') return
+
+    event.preventDefault()
+    onClick()
+  }
+
   return (
-    <div className={CARD_CLASSNAME}>
+    <div
+      className={CARD_CLASSNAME}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       <div className={HEADER_ROW_CLASSNAME}>
         <div className="items-start">
           <p className="font-semibold">{title}</p>
@@ -56,7 +74,10 @@ export function Room({
         </div>
         <Button
           variant="pvp_room_enter_btn"
-          onClick={onEnter}
+          onClick={(event) => {
+            event.stopPropagation()
+            onEnter?.()
+          }}
         >
           <p className="text-sm">입장하기</p>
           <ArrowRight size={ENTER_ICON_SIZE} />

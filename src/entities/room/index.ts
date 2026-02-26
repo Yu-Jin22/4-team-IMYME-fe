@@ -1,4 +1,6 @@
 export { Room } from './ui/Room'
 export { createPvPRoom } from './api/createPvPRoom'
 export { deletePvPRoom } from './api/deletePvPRoom'
+export { getPvPRoomDetails } from './api/getPvPRoomDetails'
+export { usePvPRoomDetails } from './model/usePvPRoomDetails'
 export type { CreatePvPRoomPayload, PvPRoomDetails } from './api/createPvPRoom'

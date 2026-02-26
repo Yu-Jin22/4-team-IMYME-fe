@@ -42,13 +42,13 @@ export type PvPRoomDetails = {
   category: PvPRoomCategorySummary
   status: PvPRoomStatus
   host: PvPRoomUserSummary
-  guest: PvPRoomUserSummary
-  keyword: PvPRoomKeyword
+  guest: PvPRoomUserSummary | null
+  keyword: PvPRoomKeyword | null
   createdAt: string
-  matchedAt: string
-  startedAt: string
-  thinkingEndsAt: string
-  message: string
+  matchedAt: string | null
+  startedAt: string | null
+  thinkingEndsAt: string | null
+  message: string | null
 }
 
 type CreatePvPRoomResponse = {
