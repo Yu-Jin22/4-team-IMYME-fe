@@ -1,3 +1,4 @@
+import { isSupportedAudioContentType } from '@/shared'
 import { httpClient } from '@/shared/api'
 
 export type CreatePvPSubmissionPayload = {
@@ -36,6 +37,11 @@ export async function createPvPSubmission(
   payload: CreatePvPSubmissionPayload,
 ): Promise<CreatePvPSubmissionResult> {
   try {
+    if (!isSupportedAudioContentType(payload.contentType)) {
+      console.error('Unsupported audio content type', payload.contentType)
+      return { ok: false, reason: 'unsupported_content_type' }
+    }
+
     const response = await httpClient.post<CreatePvPSubmissionResponse>(
       `/pvp/rooms/${roomId}/submissions`,
       payload,
