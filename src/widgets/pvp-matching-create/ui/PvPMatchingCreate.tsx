@@ -1,9 +1,7 @@
 'use client'
 
-import { useProfile } from '@/entities/user'
 import { useAccessToken } from '@/features/auth'
 import {
-  PvPMatchingWaiting,
   RoomCategorySelect,
   RoomCreateButton,
   RoomNameSetting,
@@ -12,7 +10,8 @@ import {
 import { AlertModal } from '@/shared'
 
 type PvPMatchingCreateProps = {
-  onExitGuardChange?: (isActive: boolean) => void
+  onCreatingRoomChange?: (isCreatingRoom: boolean) => void
+  onBackHandlerChange?: (onBackHandler: () => void) => void
   isExitAlertOpen?: boolean
   onExitAlertOpenChange?: (open: boolean) => void
   onExitConfirm?: () => void
@@ -20,21 +19,19 @@ type PvPMatchingCreateProps = {
 }
 
 export function PvPMatchingCreate({
-  onExitGuardChange,
+  onCreatingRoomChange,
+  onBackHandlerChange,
   isExitAlertOpen,
   onExitAlertOpenChange,
   onExitConfirm,
   onExitCancel,
 }: PvPMatchingCreateProps) {
   const accessToken = useAccessToken()
-  const profile = useProfile()
 
-  // 매칭 생성 플로우 상태/핸들러(카테고리 선택 → 방 생성 → 대기/완료)
+  // 매칭 생성 플로우 상태/핸들러(카테고리 선택 -> 방 이름 입력 -> 생성 후 매칭 페이지 이동)
   const {
     selectedCategory,
-    isNextClicked,
-    isWaiting,
-    isComplete,
+    isCategoryStep,
     roomName,
     isCreateButtonDisabled,
     createButtonVariant,
@@ -42,20 +39,12 @@ export function PvPMatchingCreate({
     handleRoomNameChange,
     handleRoomNameBlur,
     handleCreateButtonClick,
-    handleExitConfirm: handleSocketExitConfirm,
-  } = usePvPMatchingCreateFlow({ onExitGuardChange })
-
-  // 단계 분기 (카테고리 선택 단계 여부)
-  const isCategoryStep = isNextClicked === null
-
-  // 매칭 상태 표시 여부 (대기 또는 완료)
-  const shouldShowMatchingStatus = isWaiting || isComplete
-
-  const handleAlertExitConfirm = async () => {
-    const isExitSuccess = await handleSocketExitConfirm()
-    if (!isExitSuccess) return
-    onExitConfirm?.()
-  }
+    handleAlertExitConfirm,
+  } = usePvPMatchingCreateFlow({
+    onCreatingRoomChange,
+    onBackHandlerChange,
+    onExitConfirm,
+  })
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -66,25 +55,12 @@ export function PvPMatchingCreate({
           onCategorySelect={handleCategorySelect}
         />
       ) : (
-        <>
-          <RoomNameSetting
-            selectedCategoryName={selectedCategory?.categoryName}
-            roomName={roomName}
-            onRoomNameChange={handleRoomNameChange}
-            onRoomNameBlur={handleRoomNameBlur}
-            disabled={isWaiting || isComplete}
-          />
-          {shouldShowMatchingStatus ? (
-            <PvPMatchingWaiting
-              leftProfile={{
-                name: profile.nickname,
-                avatarUrl: profile.profileImageUrl,
-              }}
-              rightProfile={{ name: '...' }}
-              showSpinner={!isComplete}
-            />
-          ) : null}
-        </>
+        <RoomNameSetting
+          selectedCategoryName={selectedCategory?.categoryName}
+          roomName={roomName}
+          onRoomNameChange={handleRoomNameChange}
+          onRoomNameBlur={handleRoomNameBlur}
+        />
       )}
       <RoomCreateButton
         variant={createButtonVariant}
