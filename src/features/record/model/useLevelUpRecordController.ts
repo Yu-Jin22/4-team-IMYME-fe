@@ -1,13 +1,12 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { deleteCard } from '@/entities/card'
-import { useAccessToken } from '@/features/auth'
 import { startWarmup } from '@/features/levelup'
-import { deleteAttempt, useCardDetails } from '@/features/levelup-feedback'
+import { useCardDetails } from '@/features/levelup-feedback'
+import { resolveAudioContentType } from '@/shared'
 
 import { completeAudioUpload } from '../api/completeAudioUpload'
 import { getAudioUrl } from '../api/getAudioUrl'
@@ -18,15 +17,13 @@ import { useRecordController } from './useRecordController'
 import type { FeedbackStatus } from '@/features/levelup-feedback'
 
 const REDIRECT_DELAY_MS = 1500
-const DEFAULT_CONTENT_TYPE: SupportedAudioContentType = 'audio/webm'
 const AUTO_SUBMIT_DELAY_MS = 0
-type SupportedAudioContentType = 'audio/mp4' | 'audio/webm' | 'audio/wav' | 'audio/mpeg'
 
-const MIME_TO_CONTENT_TYPE_MAP: Record<string, SupportedAudioContentType> = {
-  'audio/webm': 'audio/webm',
-  'audio/mp4': 'audio/mp4',
-  'audio/wav': 'audio/wav',
-  'audio/mpeg': 'audio/mpeg',
+type UseLevelUpRecordControllerParams = {
+  accessToken: string
+  cardId: number | undefined
+  attemptId: number | undefined
+  attemptNo: number | undefined
 }
 
 type UseLevelUpRecordControllerResult = {
@@ -36,27 +33,22 @@ type UseLevelUpRecordControllerResult = {
   isStartingWarmup: boolean
   warmupError: boolean
   isMicAlertOpen: boolean
-  isBackAlertOpen: boolean
   isRecording: boolean
   isPaused: boolean
   elapsedSeconds: number
   recordedBlob: Blob | null
   handleMicClick: () => Promise<void>
-  handleBackConfirm: () => Promise<void>
-  handleBackCancel: () => void
   handleMicAlertOpenChange: (open: boolean) => void
-  handleBackAlertOpenChange: (open: boolean) => void
   handleRecordingComplete: () => Promise<void>
 }
 
-export function useLevelUpRecordController(): UseLevelUpRecordControllerResult {
+export function useLevelUpRecordController({
+  accessToken,
+  cardId,
+  attemptId,
+  attemptNo,
+}: UseLevelUpRecordControllerParams): UseLevelUpRecordControllerResult {
   const router = useRouter()
-  const searchParams = useSearchParams()
-
-  const cardId = Number(searchParams.get('cardId'))
-  const attemptNo = Number(searchParams.get('attemptNo'))
-  const attemptId = Number(searchParams.get('attemptId'))
-  const accessToken = useAccessToken()
   const { data } = useCardDetails(accessToken, cardId)
 
   const {
@@ -74,7 +66,6 @@ export function useLevelUpRecordController(): UseLevelUpRecordControllerResult {
     resetAutoStopped,
   } = useRecordController()
 
-  const [isBackAlertOpen, setIsBackAlertOpen] = useState(false)
   const [warmupError, setWarmupError] = useState(false)
   const [isStartingWarmup, setIsStartingWarmup] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<FeedbackStatus | null>(null)
@@ -113,29 +104,6 @@ export function useLevelUpRecordController(): UseLevelUpRecordControllerResult {
     await handleBaseMicClick()
   }
 
-  const handleBackConfirm = async () => {
-    setIsBackAlertOpen(false)
-
-    if (accessToken && cardId && attemptId && attemptNo !== 1) {
-      await deleteAttempt(accessToken, cardId, attemptId)
-      router.push('/main')
-      return
-    }
-
-    if (accessToken && cardId) {
-      await deleteCard(accessToken, cardId)
-    }
-    router.push('/main')
-  }
-
-  const handleBackCancel = () => {
-    setIsBackAlertOpen(false)
-  }
-
-  const handleBackAlertOpenChange = (open: boolean) => {
-    setIsBackAlertOpen(open)
-  }
-
   const handleRecordingComplete = useCallback(async () => {
     if (isSubmittingFeedback) return
     if (!accessToken || !cardId || !attemptId) return
@@ -151,7 +119,7 @@ export function useLevelUpRecordController(): UseLevelUpRecordControllerResult {
 
     const durationSeconds = getDurationSeconds()
     const normalizedMimeType = completedBlob.type.split(';')[0]
-    const contentType = MIME_TO_CONTENT_TYPE_MAP[normalizedMimeType] ?? DEFAULT_CONTENT_TYPE
+    const contentType = resolveAudioContentType(normalizedMimeType)
 
     const audioUrlResult = await getAudioUrl(accessToken, attemptId, contentType)
     if (!audioUrlResult.ok) {
@@ -201,7 +169,7 @@ export function useLevelUpRecordController(): UseLevelUpRecordControllerResult {
       attemptId: String(attemptId),
     })
 
-    if (attemptNo !== null) {
+    if (attemptNo !== undefined) {
       feedbackParams.set('attemptNo', String(attemptNo))
     }
 
@@ -237,16 +205,12 @@ export function useLevelUpRecordController(): UseLevelUpRecordControllerResult {
     isStartingWarmup,
     warmupError,
     isMicAlertOpen,
-    isBackAlertOpen,
     isRecording,
     isPaused,
     elapsedSeconds,
     recordedBlob,
     handleMicClick,
-    handleBackConfirm,
-    handleBackCancel,
     handleMicAlertOpenChange,
-    handleBackAlertOpenChange,
     handleRecordingComplete,
   }
 }

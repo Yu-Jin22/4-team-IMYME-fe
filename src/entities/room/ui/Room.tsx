@@ -8,13 +8,13 @@ import { Button } from '@/shared'
 import type { KeyboardEvent } from 'react'
 
 type RoomProps = {
+  roomId: number
   title: string
   category: string
   participantsLabel: string
   hostName: string
   hostProfileImageUrl?: string
-  onClick?: () => void
-  onEnter?: () => void
+  onJoinRoom: (roomId: number) => void
 }
 
 const CARD_CLASSNAME =
@@ -26,29 +26,32 @@ const HOST_AVATAR_CLASSNAME = 'rounded-full bg-gray-300 object-cover h-10 w-10'
 const ENTER_ICON_SIZE = 16
 
 export function Room({
+  roomId,
   title,
   category,
   participantsLabel,
   hostName,
   hostProfileImageUrl,
-  onClick,
-  onEnter,
+  onJoinRoom,
 }: RoomProps) {
+  const handleJoinRoom = () => {
+    onJoinRoom(roomId)
+  }
+
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!onClick) return
     if (event.key !== 'Enter' && event.key !== ' ') return
 
     event.preventDefault()
-    onClick()
+    handleJoinRoom()
   }
 
   return (
     <div
       className={CARD_CLASSNAME}
-      onClick={onClick}
+      onClick={handleJoinRoom}
       onKeyDown={handleKeyDown}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
+      role="button"
+      tabIndex={0}
     >
       <div className={HEADER_ROW_CLASSNAME}>
         <div className="items-start">
@@ -76,7 +79,7 @@ export function Room({
           variant="pvp_room_enter_btn"
           onClick={(event) => {
             event.stopPropagation()
-            onEnter?.()
+            handleJoinRoom()
           }}
         >
           <p className="text-sm">입장하기</p>
