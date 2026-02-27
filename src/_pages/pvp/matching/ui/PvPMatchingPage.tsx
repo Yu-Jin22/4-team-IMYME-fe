@@ -72,6 +72,7 @@ export function PvPMatchingPage() {
   const joinedRoomDetails = roomJoinQuery.data?.ok ? roomJoinQuery.data.data : null
   const resolvedRoomDetails = joinedRoomDetails ?? roomDetailsFromServer ?? null
   const joinedRoomId = resolvedRoomDetails?.room.id ?? null
+  const socketRoomId = joinedRoomId
 
   let isParticipantUser = false
   if (hasMyUserId && resolvedRoomDetails) {
@@ -96,7 +97,7 @@ export function PvPMatchingPage() {
     cleanupMatchingConnection,
   } = usePvPMatchingSocket({
     accessToken,
-    joinedRoomId: participantRoomId,
+    joinedRoomId: socketRoomId,
     myUserId,
     onSelfReady: () => {
       setIsReadySubmitted(true)
@@ -133,7 +134,7 @@ export function PvPMatchingPage() {
     handlePvPMicClick,
   } = usePvPRecordController({
     accessToken,
-    roomId: participantRoomId,
+    roomId: socketRoomId,
     roomStatus: latestRoomStatus,
   })
 
@@ -193,17 +194,17 @@ export function PvPMatchingPage() {
   const canStartPvPRecording =
     isThinkingStep &&
     Boolean(accessToken) &&
-    Boolean(participantRoomId) &&
+    Boolean(socketRoomId) &&
     !isStartingRecordingRequest &&
     !isReadySubmitted
 
   const handleReadyButtonClick = async () => {
-    if (!accessToken || !participantRoomId) return
+    if (!accessToken || !socketRoomId) return
     if (isReadySubmitted || isStartingRecordingRequest) return
 
     setIsReadySubmitted(true)
     setIsStartingRecordingRequest(true)
-    const startRecordingResult = await startPvPRecording(accessToken, participantRoomId)
+    const startRecordingResult = await startPvPRecording(accessToken, socketRoomId)
     setIsStartingRecordingRequest(false)
 
     if (!startRecordingResult.ok) {

@@ -15,6 +15,8 @@ const RECORDING_ROOM_STATUS = 'RECORDING'
 
 const WAIT_OPPONENT_READY_TOAST_MESSAGE = '상대방이 준비할 때까지 기다려주세요.'
 const OPPONENT_READY_TOAST_MESSAGE = '상대방이 준비되었습니다.'
+const READY_UPDATED_TOAST_MESSAGE = '준비 상태가 갱신되었습니다.'
+const ANSWER_SUBMITTED_UPDATED_TOAST_MESSAGE = '제출 상태가 갱신되었습니다.'
 
 // THINKING 종료 시각 ISO 문자열을 epoch ms로 변환한다.
 const parseThinkingEndsAtMs = (thinkingEndsAt: string | null) => {
@@ -85,7 +87,10 @@ export function usePvPMatchingSocket({
         const readyUserId = message.data.userId
 
         const currentMyUserId = myUserIdRef.current
-        if (!currentMyUserId) return
+        if (!currentMyUserId) {
+          toast.info(message.data.message ?? READY_UPDATED_TOAST_MESSAGE)
+          return
+        }
 
         if (readyUserId === currentMyUserId) {
           onSelfReady?.()
@@ -100,7 +105,10 @@ export function usePvPMatchingSocket({
       if (message.type === ANSWER_SUBMITTED_MESSAGE_TYPE) {
         const submittedUserId = message.data.userId
         const currentMyUserId = myUserIdRef.current
-        if (!currentMyUserId) return
+        if (!currentMyUserId) {
+          toast.info(message.data.message ?? ANSWER_SUBMITTED_UPDATED_TOAST_MESSAGE)
+          return
+        }
 
         if (submittedUserId === currentMyUserId) {
           onSelfAnswerSubmitted?.()

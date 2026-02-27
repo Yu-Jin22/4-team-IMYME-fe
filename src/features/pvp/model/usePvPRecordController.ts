@@ -70,6 +70,8 @@ export function usePvPRecordController({
   const isStartingLocalRecordingRef = useRef(false)
   // 제출(생성/업로드/완료) 중복 실행 방지 ref
   const isSubmittingRef = useRef(false)
+  // 한 번 제출이 시작되면 같은 녹음 결과에 대한 중복 제출을 막는다.
+  const hasSubmittedRef = useRef(false)
   // 제출 진행 상태(state)
   const [isSubmittingSubmission, setIsSubmittingSubmission] = useState(false)
   // 제출 완료 상태(state)
@@ -99,6 +101,10 @@ export function usePvPRecordController({
     // 시작 중이면 중복 시작하지 않는다.
     if (isStartingLocalRecordingRef.current) return
 
+    // 새 녹음 사이클 시작 시 제출 상태를 초기화한다.
+    hasSubmittedRef.current = false
+    setIsSubmissionCompleted(false)
+
     // 시작 중 플래그 on
     isStartingLocalRecordingRef.current = true
     try {
@@ -113,12 +119,14 @@ export function usePvPRecordController({
   // 제출 공통 플로우: submission 생성 -> 업로드 -> complete
   const submitRecordedBlob = useCallback(
     async (completedBlob: Blob) => {
-      if (isSubmittingRef.current) return
+      if (isSubmittingRef.current || hasSubmittedRef.current) return
 
       // 제출 중복 방지 플래그 on
       isSubmittingRef.current = true
+      hasSubmittedRef.current = true
       // UI 로더 표시 상태 on
       setIsSubmittingSubmission(true)
+      let shouldKeepSubmitted = false
       try {
         if (!accessToken || !roomId) {
           toast.error(CREATE_SUBMISSION_ERROR_MESSAGE)
@@ -168,9 +176,14 @@ export function usePvPRecordController({
 
         // complete 성공 시 로더 유지 상태로 전환
         setIsSubmissionCompleted(true)
+        shouldKeepSubmitted = true
       } finally {
         // 제출 중복 방지 플래그 off
         isSubmittingRef.current = false
+        // 실패한 경우에만 재시도를 허용한다.
+        if (!shouldKeepSubmitted) {
+          hasSubmittedRef.current = false
+        }
         // 제출 로딩 상태 off
         setIsSubmittingSubmission(false)
       }
@@ -213,9 +226,11 @@ export function usePvPRecordController({
     if (!autoStopped) return
     if (!recordedBlob) return
 
+    // auto-stop 플래그는 즉시 소비해 effect 재실행 중복을 막는다.
+    resetAutoStopped()
+
     const submitAfterAutoStop = async () => {
       await submitRecordedBlob(recordedBlob)
-      resetAutoStopped()
     }
 
     void submitAfterAutoStop()
