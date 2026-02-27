@@ -16,6 +16,7 @@ type ModeHeaderProps =
       mode: 'levelup'
       step: LevelUpStep
       onBack: () => void
+      backDisabled?: boolean
       title?: string
       progressValue?: number
       stepLabel?: string
@@ -24,6 +25,7 @@ type ModeHeaderProps =
       mode: 'pvp'
       step: PvPStep
       onBack: () => void
+      backDisabled?: boolean
       title?: string
       progressValue?: number
       stepLabel?: string
@@ -53,6 +55,7 @@ export function ModeHeader({
   step,
   title,
   onBack,
+  backDisabled = false,
   progressValue,
   stepLabel,
 }: ModeHeaderProps) {
@@ -66,7 +69,10 @@ export function ModeHeader({
   return (
     <>
       <div className="flex w-full gap-3">
-        <BackButton onClick={onBack} />
+        <BackButton
+          onClick={onBack}
+          disabled={backDisabled}
+        />
         <div className="flex flex-col items-start">
           <p className="font-semibold">{titleText}</p>
           <p className="text-sm">{subtitleText}</p>
