@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-
 import { Button } from '@/shared'
 
 type RoomCreateButtonVariant = 'category' | 'create' | 'waiting' | 'complete'
@@ -26,22 +24,7 @@ const ENABLED_CREATE_BUTTON_TONE_CLASSNAME =
   'bg-primary text-primary-foreground hover:bg-primary/90'
 
 export function RoomCreateButton({ variant, disabled, onClick }: RoomCreateButtonProps) {
-  const [currentVariant, setCurrentVariant] = useState<RoomCreateButtonVariant>(variant)
-
-  useEffect(() => {
-    setCurrentVariant(variant)
-  }, [variant])
-
-  const handleClick = () => {
-    if (currentVariant === 'create') {
-      setCurrentVariant('waiting')
-    }
-    if (onClick) {
-      onClick()
-    }
-  }
-
-  const isCreateActionEnabled = currentVariant === 'create' && !disabled
+  const isCreateActionEnabled = variant === 'create' && !disabled
   const buttonToneClassName = isCreateActionEnabled
     ? ENABLED_CREATE_BUTTON_TONE_CLASSNAME
     : DEFAULT_BUTTON_TONE_CLASSNAME
@@ -51,9 +34,9 @@ export function RoomCreateButton({ variant, disabled, onClick }: RoomCreateButto
       <Button
         className={`${BUTTON_SIZE_CLASSNAME} ${buttonToneClassName}`}
         disabled={disabled}
-        onClick={handleClick}
+        onClick={onClick}
       >
-        {LABEL_BY_VARIANT[currentVariant]}
+        {LABEL_BY_VARIANT[variant]}
       </Button>
     </div>
   )
