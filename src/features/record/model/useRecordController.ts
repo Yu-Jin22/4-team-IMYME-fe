@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react'
 
-import { useMicrophone } from './client/useMicrophone'
+import { useMicrophone } from '@/shared'
 
 // 공통 녹음 컨트롤러가 UI에 제공하는 최소/공통 상태와 액션
 export type UseRecordControllerResult = {
@@ -22,7 +22,13 @@ export type UseRecordControllerResult = {
   resetAutoStopped: () => void
 }
 
-export function useRecordController(): UseRecordControllerResult {
+type UseRecordControllerOptions = {
+  canPause?: boolean
+}
+
+export function useRecordController({
+  canPause = true,
+}: UseRecordControllerOptions = {}): UseRecordControllerResult {
   const {
     isMicAlertOpen,
     setIsMicAlertOpen,
@@ -46,6 +52,7 @@ export function useRecordController(): UseRecordControllerResult {
 
   const handleMicClick = useCallback(async () => {
     if (isRecording) {
+      if (!canPause) return
       if (isPaused) {
         resumeRecording()
       } else {
@@ -55,7 +62,7 @@ export function useRecordController(): UseRecordControllerResult {
     }
 
     await startRecording()
-  }, [isPaused, isRecording, pauseRecording, resumeRecording, startRecording])
+  }, [canPause, isPaused, isRecording, pauseRecording, resumeRecording, startRecording])
 
   const handleMicAlertOpenChange = (open: boolean) => {
     setIsMicAlertOpen(open)

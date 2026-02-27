@@ -1,6 +1,4 @@
-export { startMediaRecorder } from './model/startMediaRecorder'
 export { MicrophoneBox } from './ui/MicrophoneBox'
-export { useMicrophone } from './model/client/useMicrophone'
 export { useRecordController } from './model/useRecordController'
 export { useLevelUpRecordController } from './model/useLevelUpRecordController'
 export { getAudioUrl } from './api/getAudioUrl'
