@@ -12,6 +12,7 @@ const withBundleAnalyzer = isAnalyze
   : (config) => config
 
 const nextConfig = {
+  output: 'standalone',
   ...(customDistDir ? { distDir: customDistDir } : {}),
   productionBrowserSourceMaps: true,
   experimental: {

@@ -1,12 +1,12 @@
-name: Frontend CI/CD prod mvp2
+name: Frontend CI/CD release mvp2
 
 on:
   pull_request:
     branches:
-      - main
+      - release
   push:
     branches:
-      - main
+      - release
 
 permissions:
   actions: write
@@ -98,16 +98,15 @@ jobs:
       - name: Build
         env:
           NEXT_PUBLIC_KAKAO_REST_API_KEY: ${{ secrets.NEXT_PUBLIC_KAKAO_REST_API_KEY }}
-          NEXT_PUBLIC_KAKAO_REDIRECT_URI: ${{ secrets.NEXT_PUBLIC_PROD_KAKAO_REDIRECT_URI }}
-          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_PROD_API_BASE_URL }}
-          NEXT_PUBLIC_SECURE: ${{ secrets.NEXT_PUBLIC_PROD_SECURE }}
-          NODE_ENV: ${{ secrets.NODE_PROD_ENV }}
-          NEXT_PUBLIC_SERVER_URL: ${{ secrets.NEXT_PUBLIC_PROD_SERVER_URL }}
-          NEXT_PUBLIC_GOOGLE_ANALYTICS: ${{ secrets.NEXT_PUBLIC_PROD_GOOGLE_ANALYTICS }}
-          E2E_BASE_URL: ${{ secrets.E2E_PROD_BASE_URL }}
-          PERF_BASE_URL: ${{ secrets.PERF_PROD_BASE_URL }}
-          ALLOW_E2E_LOGIN: ${{ secrets.ALLOW_PROD_E2E_LOGIN }}
-          NEXT_PUBLIC_PVP_OPEN: ${{ secrets.PVP_PROD_OPEN }}
+          NEXT_PUBLIC_KAKAO_REDIRECT_URI: ${{ secrets.NEXT_PUBLIC_RELEASE_KAKAO_REDIRECT_URI }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_RELEASE_API_BASE_URL }}
+          NEXT_PUBLIC_SECURE: ${{ secrets.NEXT_PUBLIC_RELEASE_SECURE }}
+          NODE_ENV: ${{ secrets.NODE_RELEASE_ENV }}
+          NEXT_PUBLIC_SERVER_URL: ${{ secrets.NEXT_PUBLIC_RELEASE_SERVER_URL }}
+          E2E_BASE_URL: ${{ secrets.E2E_RELEASE_BASE_URL }}
+          PERF_BASE_URL: ${{ secrets.PERF_RELEASE_BASE_URL }}
+          ALLOW_E2E_LOGIN: ${{ secrets.ALLOW_RELEASE_E2E_LOGIN }}
+          NEXT_PUBLIC_PVP_OPEN: ${{ secrets.PVP_RELEASE_OPEN }}
         run: pnpm next build
 
   ci-notify-success:
@@ -183,7 +182,7 @@ jobs:
   # 2) CD
   cd:
     needs: ci
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
 
     steps:
@@ -217,18 +216,18 @@ jobs:
           platforms: linux/arm64
           build-args: |
             NEXT_PUBLIC_KAKAO_REST_API_KEY=${{ secrets.NEXT_PUBLIC_KAKAO_REST_API_KEY }}
-            NEXT_PUBLIC_KAKAO_REDIRECT_URI=${{ secrets.NEXT_PUBLIC_PROD_KAKAO_REDIRECT_URI }}
-            NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_PROD_API_BASE_URL }}
-            NEXT_PUBLIC_SECURE=${{ secrets.NEXT_PUBLIC_PROD_SECURE }}
-            NEXT_PUBLIC_SERVER_URL=${{ secrets.NEXT_PUBLIC_PROD_SERVER_URL }}
-            NEXT_PUBLIC_PVP_OPEN=${{ secrets.PVP_PROD_OPEN }}
+            NEXT_PUBLIC_KAKAO_REDIRECT_URI=${{ secrets.NEXT_PUBLIC_RELEASE_KAKAO_REDIRECT_URI }}
+            NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_RELEASE_API_BASE_URL }}
+            NEXT_PUBLIC_SECURE=${{ secrets.NEXT_PUBLIC_RELEASE_SECURE }}
+            NEXT_PUBLIC_SERVER_URL=${{ secrets.NEXT_PUBLIC_RELEASE_SERVER_URL }}
+            NEXT_PUBLIC_PVP_OPEN=${{ secrets.PVP_RELEASE_OPEN }}
           tags: |
             219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:${{ github.sha }}
-            219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:prod-latest
+            219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:release-latest
           cache-from: type=registry,ref=219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:buildcache
           cache-to: type=registry,ref=219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:buildcache,mode=max
 
-      # 6. SSM으로 프로덕션 서버에 배포
+      # 6. SSM으로 릴리즈 서버에 배포
       - name: Deploy with SSM (docker compose)
         run: |
           set -euo pipefail
@@ -239,7 +238,7 @@ jobs:
               "set -eu",
               "cd /home/ubuntu",
               "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 219268921033.dkr.ecr.ap-northeast-2.amazonaws.com",
-              "IMAGE_URI=219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:prod-latest",
+              "IMAGE_URI=219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:release-latest",
               "docker pull $IMAGE_URI",
               "docker compose up -d",
               "docker image prune -f"
@@ -249,8 +248,8 @@ jobs:
 
           COMMAND_ID=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
-            --targets "Key=tag:server,Values=prod" \
-            --comment "frontend prod deploy (${GITHUB_SHA})" \
+            --targets "Key=tag:aws:autoscaling:groupName,Values=mine_mvp1_fe_asg" \
+            --comment "frontend release deploy (${GITHUB_SHA})" \
             --parameters file:///tmp/ssm-params.json \
             --region ap-northeast-2 \
             --query "Command.CommandId" \
@@ -297,7 +296,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          BASE_URL="${{ secrets.PROD_BASE_URL }}"
+          BASE_URL="${{ secrets.RELEASE_BASE_URL }}"
 
           echo "🔎 Smoke 1) Health check: ${BASE_URL}/api/health"
           curl -fsS "${BASE_URL}/api/health" >/dev/null
@@ -324,7 +323,7 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: success
           title: '🟢 Frontend Deploy Success'
-          content: '프론트엔드 운영 서버 배포 완료!'
+          content: '프론트엔드 릴리즈 서버 배포 완료!'
           color: 0x00ff00
 
   cd-notify-failure:
@@ -338,5 +337,5 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: failure
           title: '🔴 Frontend Deploy Failed'
-          content: '<@&${{ secrets.FRONTEND_ROLE_ID }}> 프론트엔드 운영 서버 배포 실패!'
+          content: '<@&${{ secrets.FRONTEND_ROLE_ID }}> 프론트엔드 릴리즈 서버 배포 실패!'
           color: 0xff0000
