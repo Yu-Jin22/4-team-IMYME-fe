@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared'
+import { httpClient } from '@/shared/api'
 
 type DeleteAttemptResult = { ok: true } | { ok: false; reason: string }
 

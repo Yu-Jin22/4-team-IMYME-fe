@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { startMediaRecorder } from '@/features/record'
+import { startMediaRecorder } from './startMediaRecorder'
 
 // ✅ 최대 녹음 길이: 60초
 const MAX_RECORDING_MS = 60_000

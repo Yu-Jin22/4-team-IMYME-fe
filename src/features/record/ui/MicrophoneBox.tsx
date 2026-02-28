@@ -3,8 +3,8 @@
 import { CircleStop, Mic } from 'lucide-react'
 
 type MicrophoneBoxProps = {
-  isStartingWarmup: boolean
-  warmupError: boolean
+  isStartingWarmup?: boolean
+  warmupError?: boolean
   onMicClick: () => void
   title: string
   description: string

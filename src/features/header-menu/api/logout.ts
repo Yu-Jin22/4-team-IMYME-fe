@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared'
+import { httpClient } from '@/shared/api'
 
 type LogoutResult = { ok: true } | { ok: false; reason: string }
 

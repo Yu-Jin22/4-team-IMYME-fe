@@ -1,4 +1,4 @@
-name: Frontend CI/CD v2
+name: Frontend CI/CD v3
 
 on:
   pull_request:
@@ -105,6 +105,9 @@ jobs:
           NEXT_PUBLIC_SERVER_URL: ${{ secrets.NEXT_PUBLIC_DEV_SERVER_URL }}
           NEXT_PUBLIC_GOOGLE_ANALYTICS: ${{ secrets.NEXT_PUBLIC_DEV_GOOGLE_ANALYTICS }}
           E2E_BASE_URL: ${{ secrets.E2E_DEV_BASE_URL }}
+          PERF_BASE_URL: ${{ secrets.PERF_DEV_BASE_URL }}
+          ALLOW_E2E_LOGIN: ${{ secrets.ALLOW_DEV_E2E_LOGIN }}
+          NEXT_PUBLIC_PVP_OPEN: ${{ secrets.PVP_DEV_OPEN }}
 
         run: |
           echo "=== Build env check (masked) ==="
@@ -115,6 +118,9 @@ jobs:
           echo "NEXT_PUBLIC_KAKAO_REDIRECT_URI=$NEXT_PUBLIC_KAKAO_REDIRECT_URI"
           echo "NEXT_PUBLIC_GOOGLE_ANALYTICS=$NEXT_PUBLIC_GOOGLE_ANALYTICS"
           echo "E2E_BASE_URL=$E2E_BASE_URL"
+          echo "PERF_BASE_URL=$PERF_BASE_URL"
+          echo "ALLOW_E2E_LOGIN=$ALLOW_E2E_LOGIN"
+          echo "NEXT_PUBLIC_PVP_OPEN=$PVP_OPEN"
 
           pnpm next build
 
@@ -147,6 +153,7 @@ jobs:
           cp -r public deploy/ || true
           cp package.json deploy/
           cp pnpm-lock.yaml deploy/
+          cp next.config.mjs deploy/
 
       # 11. 빌드 결과 업로드
       - name: Upload artifact
@@ -297,6 +304,7 @@ jobs:
           cp -r $APP_DIR/build/public "$RELEASE_DIR/"
           cp $APP_DIR/build/package.json "$RELEASE_DIR/"
           cp $APP_DIR/build/pnpm-lock.yaml "$RELEASE_DIR/"
+          cp $APP_DIR/build/next.config.mjs "$RELEASE_DIR/"
 
           # 2. 의존성 설치
           cd "$RELEASE_DIR"

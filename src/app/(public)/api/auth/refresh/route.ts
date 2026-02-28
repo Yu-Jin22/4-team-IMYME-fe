@@ -2,7 +2,7 @@ import axios from 'axios'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-import { httpClient } from '@/shared'
+import { httpClient } from '@/shared/api'
 
 const REFRESH_TOKEN_COOKIE = 'refresh_token'
 const COOKIE_PATH = '/'
@@ -35,6 +35,7 @@ export async function POST() {
 
     const accessToken = response.data?.data?.accessToken
     const nextRefreshToken = response.data?.data?.refreshToken
+    const expiresIn = response.data?.data?.expiresIn
 
     if (!accessToken) {
       const res = NextResponse.json({ error: 'no_access_token' }, { status: 401 })
@@ -42,7 +43,8 @@ export async function POST() {
       return res
     }
 
-    const res = NextResponse.json({ access_token: accessToken })
+    // 클라이언트가 선제 갱신 스케줄을 잡을 수 있도록 expiresIn도 함께 전달한다.
+    const res = NextResponse.json({ access_token: accessToken, expiresIn })
 
     if (nextRefreshToken) {
       res.cookies.set('refresh_token', String(nextRefreshToken), {

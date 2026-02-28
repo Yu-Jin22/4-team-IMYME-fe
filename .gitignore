@@ -31,7 +31,7 @@ out/
 
 # Next.js
 .next/
-
+.next-3001/
 # Vite
 .vite/
 
@@ -102,3 +102,16 @@ Thumbs.db
 uploads/
 build.sh
 docker-compose.local.yml
+docker-compos
+
+# Playwright
+playwright-report/
+test-results/
+
+# Lighthouse reports (Playwright perf)
+lighthouse/
+perf-results/
+artifacts/har/
+build.sh
+docker-compose.local.yml
+
