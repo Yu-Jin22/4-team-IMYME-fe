@@ -2,10 +2,9 @@
 
 import { PvPProfile } from './PvPProfile'
 
-type PvPParticipantProfile = {
-  name: string
-  avatarUrl?: string
-}
+import type { PvPParticipantProfile } from '../model/toPvPParticipantProfiles'
+
+export type { PvPParticipantProfile } from '../model/toPvPParticipantProfiles'
 
 type PvPParticipantsProps = {
   leftProfile: PvPParticipantProfile

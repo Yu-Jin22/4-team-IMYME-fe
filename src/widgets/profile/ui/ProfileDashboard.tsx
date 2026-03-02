@@ -1,7 +1,7 @@
 'use client'
 
 import { ChevronLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 import {
   Avatar,
@@ -16,39 +16,25 @@ import { useAccessToken } from '@/features/auth'
 const AVATAR_SIZE_PX = 60
 const FALLBACK_NICKNAME = '로딩중...'
 const FALLBACK_STAT_VALUE = 0
+const MAIN_PAGE_PATH = '/main'
+const MY_PAGE_PATH = '/mypage'
 
 interface ProfileDashboardProps {
-  navigateToMyPage?: boolean
-  showBackButton?: boolean
   deferAvatarImageUntilProfileReady?: boolean
 }
 
 export function ProfileDashboard({
-  navigateToMyPage = true,
-  showBackButton = false,
   deferAvatarImageUntilProfileReady = false,
 }: ProfileDashboardProps) {
-  // 라우팅/토큰
   const router = useRouter()
+  const pathname = usePathname()
   const accessToken = useAccessToken()
   const profile = useProfile()
   const { data: myProfile } = useMyProfileQuery(accessToken, { enabled: Boolean(accessToken) })
   useSyncMyProfile({ accessToken, myProfile })
 
-  // ✅ 렌더는 store 기준으로 고정 (query 응답으로 인한 2회 변경 방지)
-
-  const handleNavigateToMyPage = () => {
-    // 내 페이지 이동
-    if (!navigateToMyPage) return
-    router.push('/mypage')
-  }
-
-  const handleBackButton = () => {
-    // 뒤로가기
-    if (!showBackButton) return
-    router.push('/main')
-  }
-
+  const isMainPage = pathname === MAIN_PAGE_PATH
+  const isMyPage = pathname === MY_PAGE_PATH
   const isProfileReady = Boolean(profile.nickname || profile.profileImageUrl)
   const shouldDeferAvatarImage = deferAvatarImageUntilProfileReady && !myProfile
   const avatarSrcForRender = shouldDeferAvatarImage
@@ -58,15 +44,19 @@ export function ProfileDashboard({
   return (
     <div className="relative w-full">
       <div
-        className={['absolute rounded-md p-1', showBackButton ? '' : 'invisible'].join(' ')}
-        onClick={handleBackButton}
+        className={['absolute rounded-md p-1', isMyPage ? '' : 'invisible'].join(' ')}
+        onClick={() => {
+          router.push('/main')
+        }}
       >
         <ChevronLeft />
       </div>
 
       <div
         className="w-full cursor-pointer"
-        onClick={handleNavigateToMyPage}
+        onClick={() => {
+          if (isMainPage) router.push('/mypage')
+        }}
       >
         {/* 프로필 요약 */}
         <div className="grid w-full auto-cols-max grid-flow-col items-start gap-4">

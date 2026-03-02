@@ -55,12 +55,17 @@ export function MyPvPCardList({ selectedCategory, selectedKeyword }: MyPvPCardLi
       {historyItems.map((history) => (
         <PvPCard
           key={history.historyId}
+          historyId={history.historyId}
+          accessToken={accessToken}
           title={history.room.name}
           resultVariant={history.myResult.isWinner ? 'win' : 'lose'}
           categoryName={history.category.name}
           keywordName={history.keyword.name}
           opponentName={history.opponent.nickname}
           onClick={() => router.push(`/mypage/pvps/${history.room.id}`)}
+          onDelete={async () => {
+            await myPvPCardListQuery.refetch()
+          }}
         />
       ))}
     </div>

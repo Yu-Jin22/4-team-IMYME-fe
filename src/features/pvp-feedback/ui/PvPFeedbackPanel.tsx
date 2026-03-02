@@ -17,6 +17,8 @@ type PvPFeedbackPanelProps = {
 }
 
 const readFeedbackText = (value?: string) => value ?? EMPTY_FEEDBACK_MESSAGE
+const readKeywordText = (value?: string[]) =>
+  value && value.length > 0 ? value.join(', ') : EMPTY_FEEDBACK_MESSAGE
 
 export function PvPFeedbackPanel({ feedback }: PvPFeedbackPanelProps) {
   return (
@@ -35,7 +37,7 @@ export function PvPFeedbackPanel({ feedback }: PvPFeedbackPanelProps) {
           <div className={TAB_CONTENT_CLASSNAME}>{readFeedbackText(feedback?.summary)}</div>
         </TabsContent>
         <TabsContent value="keywords">
-          <div className={TAB_CONTENT_CLASSNAME}>{readFeedbackText(feedback?.keywords)}</div>
+          <div className={TAB_CONTENT_CLASSNAME}>{readKeywordText(feedback?.keywords)}</div>
         </TabsContent>
         <TabsContent value="facts">
           <div className={TAB_CONTENT_CLASSNAME}>{readFeedbackText(feedback?.facts)}</div>
@@ -47,7 +49,7 @@ export function PvPFeedbackPanel({ feedback }: PvPFeedbackPanelProps) {
       <div className={COMPARE_FEEDBACK_WRAPPER_CLASSNAME}>
         <p className="text-start text-sm font-semibold">비교 피드백</p>
         <div className={COMPARE_FEEDBACK_CONTENT_CLASSNAME}>
-          {readFeedbackText(feedback?.socraticFeedback)}
+          {readFeedbackText(feedback?.personalizedFeedback)}
         </div>
       </div>
     </div>

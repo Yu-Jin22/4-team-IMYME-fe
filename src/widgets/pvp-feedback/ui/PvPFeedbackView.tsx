@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 
 import { PvPCategory, PvPKeyword, usePvPCardDetails } from '@/entities/pvp-card'
 import { useAccessToken } from '@/features/auth'
-import { PvPParticipants, PvPProfile } from '@/features/pvp'
+import { PvPParticipants, PvPProfile, toPvPParticipantProfiles } from '@/features/pvp'
 import { PvPFeedbackPanel, PvPWinnerProfileCard } from '@/features/pvp-feedback'
 import { ModeHeader, StatusMessage } from '@/shared'
 
@@ -58,6 +58,8 @@ export function PvPFeedbackView({ variant, roomId, messages }: PvPFeedbackViewPr
     return <StatusMessage message={messages?.empty ?? DEFAULT_EMPTY_MESSAGE} />
   }
 
+  const { leftProfile, rightProfile } = toPvPParticipantProfiles(details)
+
   const handleBackClick = () => {
     if (variant === 'matching') {
       router.replace(MAIN_PAGE_PATH)
@@ -77,14 +79,8 @@ export function PvPFeedbackView({ variant, roomId, messages }: PvPFeedbackViewPr
       />
       <PvPCategory categoryName={details.category?.name ?? ''} />
       <PvPParticipants
-        leftProfile={{
-          name: details.myResult?.user?.nickname ?? '',
-          avatarUrl: details.myResult?.user?.profileImageUrl ?? '',
-        }}
-        rightProfile={{
-          name: details.opponentResult?.user?.nickname ?? '',
-          avatarUrl: details.opponentResult?.user?.profileImageUrl ?? '',
-        }}
+        leftProfile={leftProfile}
+        rightProfile={rightProfile}
       />
       <PvPKeyword keywordName={details.keyword?.name ?? ''} />
       <PvPWinnerProfileCard

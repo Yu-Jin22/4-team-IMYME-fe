@@ -5,15 +5,12 @@ import { CircleCheckBig } from 'lucide-react'
 import { Spinner } from '@/shared'
 
 import { PvPParticipants } from './PvPParticipants'
+
+import type { PvPParticipantProfile } from './PvPParticipants'
+
 type PvPMatchingWaitingProps = {
-  leftProfile: {
-    name: string
-    avatarUrl?: string
-  }
-  rightProfile: {
-    name: string
-    avatarUrl?: string
-  }
+  leftProfile: PvPParticipantProfile
+  rightProfile: PvPParticipantProfile
   showSpinner?: boolean
 }
 

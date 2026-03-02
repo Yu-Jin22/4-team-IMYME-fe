@@ -27,28 +27,18 @@ type UsePvPMatchingCreateFlowParams = {
   onCreatingRoomChange?: (isCreatingRoom: boolean) => void
   // 부모 페이지 헤더가 실행할 뒤로가기 핸들러 등록
   onBackHandlerChange?: (onBackHandler: () => void) => void
-  // 이탈(나가기) 성공 시 부모 후처리 콜백
-  onExitConfirm?: () => void
 }
 
 type UsePvPMatchingCreateFlowResult = {
-  // 현재 선택된 카테고리
   selectedCategory: CategoryItemType | null
-  // 카테고리 단계 -> 방 이름 단계 전환 여부
-  isNextClicked: boolean | null
-  // 카테고리 단계인지 여부(파생 상태)
   isCategoryStep: boolean
-  // 방 이름 입력값
   roomName: string
   // create API 진행 중 여부
   isCreatingRoom: boolean
   // 버튼 비활성 여부(입력 미완료 or 생성 중)
   isCreateButtonDisabled: boolean
-  // 버튼 variant(category/create)
   createButtonVariant: 'category' | 'create'
-  // 카테고리 선택/해제
   handleCategorySelect: (category: CategoryItemType) => void
-  // 방 이름 입력 변경
   handleRoomNameChange: (value: string) => void
   // 방 이름 blur 시 정규화
   handleRoomNameBlur: () => void
@@ -56,37 +46,27 @@ type UsePvPMatchingCreateFlowResult = {
   handleBackClick: () => void
   // 다음/방 만들기 버튼 클릭 핸들러
   handleCreateButtonClick: () => Promise<void>
-  // 이탈 확인 기본 핸들러(현재는 true 반환)
-  handleExitConfirm: () => Promise<boolean>
-  // AlertModal 나가기 액션 핸들러
-  handleAlertExitConfirm: () => Promise<void>
 }
 
 export function usePvPMatchingCreateFlow({
   onCreatingRoomChange,
   onBackHandlerChange,
-  onExitConfirm,
 }: UsePvPMatchingCreateFlowParams = {}): UsePvPMatchingCreateFlowResult {
-  // 1단계(카테고리)의 선택 상태
   const [selectedCategory, setSelectedCategory] = useState<CategoryItemType | null>(null)
+  const [roomName, setRoomName] = useState('')
+
   // 단계 전환 상태(null/false: 1단계, true: 2단계)
   const [isNextClicked, setIsNextClicked] = useState<boolean | null>(null)
-  // 2단계(방 이름)의 입력 상태
-  const [roomName, setRoomName] = useState('')
+
   // 생성 요청 진행 중 상태(중복 호출 방지 + UI 잠금)
   const [isCreatingRoom, setIsCreatingRoom] = useState(false)
 
-  // 라우팅 제어 객체
   const router = useRouter()
-  // 생성 API 인증 토큰
   const accessToken = useAccessToken()
 
-  // 1단계 필수값 충족 여부
   const hasSelectedCategory = Boolean(selectedCategory)
-  // 현재 카테고리 단계인지 판단
   const isCategoryStep = !isNextClicked
 
-  // CTA 버튼 variant는 단계에 따라 `category` 또는 `create`
   const createButtonVariant = isCategoryStep ? 'category' : 'create'
 
   // 단계별 유효성 검증:
@@ -101,7 +81,6 @@ export function usePvPMatchingCreateFlow({
     setSelectedCategory((prev) => (prev?.id === category.id ? null : category))
   }, [])
 
-  // 방 이름 입력 변경 핸들러
   const handleRoomNameChange = useCallback((value: string) => {
     setRoomName(value)
   }, [])
@@ -126,11 +105,10 @@ export function usePvPMatchingCreateFlow({
       return
     }
 
-    // 카테고리는 선택했지만 방 이름이 비어 있으면 단계 초기화 후 목록으로 이동
+    // 카테고리는 선택했지만 방 이름이 비어 있으면 카테고리 선택 해제
     if (roomName.trim().length === 0) {
       setSelectedCategory(null)
       setIsNextClicked(null)
-      router.replace('/pvp')
       return
     }
 
@@ -158,10 +136,9 @@ export function usePvPMatchingCreateFlow({
       return
     }
 
-    // 토큰/카테고리 없으면 생성 요청하지 않음
     if (!accessToken || !selectedCategory) return
 
-    // 서버 전송 전 방 이름 정규화
+    // 방 이름 정규화
     const normalizedRoomName = normalizeRoomNameBoundarySpaces(roomName)
     if (normalizedRoomName.length === 0) return
 
@@ -171,52 +148,32 @@ export function usePvPMatchingCreateFlow({
     // 요청 시작(버튼/뒤로가기 비활성화)
     setIsCreatingRoom(true)
 
-    // 방 생성 API 호출
     const createdRoom = await createPvPRoom(accessToken, {
       categoryId: selectedCategory.id,
       roomName: normalizedRoomName,
     })
 
-    // 생성 실패: 토스트 표시 후 생성 중 상태 해제
     if (!createdRoom) {
       toast.error(CREATE_ROOM_ERROR_MESSAGE)
       setIsCreatingRoom(false)
       return
     }
 
-    // 생성 성공: 대기 페이지를 거치지 않고 매칭 페이지로 즉시 이동
+    // 생성 성공: 매칭 페이지로 즉시 이동
     router.replace(`${MATCHING_PATH_PREFIX}/${createdRoom.room.id}`)
   }
 
-  // 나가기 확인 기본 처리(현재는 항상 성공 처리)
-  const handleExitConfirm = useCallback(async () => {
-    return true
-  }, [])
-
-  // AlertModal의 "나가기" 액션 처리:
-  // 훅 내부 확인 -> 성공 시 부모 후처리 콜백 실행
-  const handleAlertExitConfirm = useCallback(async () => {
-    const isExitSuccess = await handleExitConfirm()
-    if (!isExitSuccess) return
-    onExitConfirm?.()
-  }, [handleExitConfirm, onExitConfirm])
-
   return {
-    // 상태
     selectedCategory,
-    isNextClicked,
     isCategoryStep,
     roomName,
     isCreatingRoom,
     isCreateButtonDisabled,
     createButtonVariant,
-    // 핸들러
     handleCategorySelect,
     handleRoomNameChange,
     handleRoomNameBlur,
     handleBackClick,
     handleCreateButtonClick,
-    handleExitConfirm,
-    handleAlertExitConfirm,
   }
 }

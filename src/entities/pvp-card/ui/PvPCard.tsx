@@ -3,17 +3,21 @@
 import { ArrowRight, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
+import { hidePvPCard } from '../api/hidePvPCard'
+
 type PvPResultVariant = 'win' | 'lose'
 
 type PvPCardProps = {
   id?: number
+  historyId?: number
+  accessToken?: string
   title: string
   resultVariant: PvPResultVariant
   opponentName: string
   categoryName: string
   keywordName: string
   onClick?: () => void
-  onDelete?: () => void
+  onDelete?: () => void | Promise<void>
 }
 
 const REVEAL_PX = 50
@@ -38,6 +42,8 @@ const RESULT_LABEL_BY_VARIANT: Record<PvPResultVariant, string> = {
 }
 
 export function PvPCard({
+  historyId,
+  accessToken,
   title,
   resultVariant,
   opponentName,
@@ -51,6 +57,7 @@ export function PvPCard({
 
   const [x, setX] = useState(0)
   const [dragging, setDragging] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const startXRef = useRef(0)
   const baseXRef = useRef(0)
@@ -62,6 +69,26 @@ export function PvPCard({
 
   const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v))
   const close = () => setX(0)
+
+  const handleDeleteClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+
+    if (!accessToken || !historyId || isDeleting) return
+
+    setIsDeleting(true)
+
+    const hideResult = await hidePvPCard(accessToken, historyId)
+
+    setIsDeleting(false)
+
+    if (!hideResult) return
+
+    close()
+
+    if (onDelete) {
+      await onDelete()
+    }
+  }
 
   useEffect(() => {
     if (!isRevealed) return
@@ -139,9 +166,9 @@ export function PvPCard({
           type="button"
           aria-label="카드 삭제"
           className="flex h-8 w-8 items-center justify-center"
+          disabled={isDeleting}
           onClick={(event) => {
-            event.stopPropagation()
-            if (onDelete) onDelete()
+            void handleDeleteClick(event)
           }}
         >
           <Trash2 className="text-black" />

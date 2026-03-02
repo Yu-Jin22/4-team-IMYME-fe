@@ -42,6 +42,7 @@ export function useMyProfileQuery(
     staleTime: 60_000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+    refetchOnMount: false,
   })
 
   // 컴포넌트에 필요한 최소 상태만 반환

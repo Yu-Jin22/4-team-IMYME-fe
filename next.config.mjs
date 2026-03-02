@@ -4,7 +4,7 @@ const customDistDir = process.env.NEXT_DIST_DIR
 const isAnalyze = process.env.ANALYZE === 'true'
 
 /**
- * ANALYZE=true 일 때만 @next/bundle-analyzer를 동적으로 로드합니다.
+ * ANALYZE=true 일 때만 @next/bundle-analyzer를 동적으로 로드
  * (CI 서버에 패키지가 없어도 ANALYZE=false면 빌드가 안 터짐)
  */
 const withBundleAnalyzer = isAnalyze
@@ -19,8 +19,8 @@ const nextConfig = {
     trustHostHeader: true,
   },
   images: {
+    dangerouslyAllowLocalIP: true,
     formats: ['image/avif', 'image/webp'],
-    domains: ['dev-imymemine.s3.ap-northeast-2.amazonaws.com'],
     remotePatterns: [
       {
         protocol: 'http',

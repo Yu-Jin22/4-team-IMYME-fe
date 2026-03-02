@@ -2,7 +2,6 @@ import dynamic from 'next/dynamic'
 
 import { ModeButton } from '@/features/mode'
 import { RecentListHeader } from '@/shared'
-import { ProfileDashboard } from '@/widgets/profile'
 
 const RecentCardListLazy = dynamic(
   () => import('@/widgets/recent-card').then((module) => module.RecentCardList),
@@ -21,8 +20,6 @@ const RecentPvPListLazy = dynamic(
 export function MainPage() {
   return (
     <div className="flex w-full flex-1 flex-col pb-6">
-      {/* 프로필 상단 영역 */}
-      <ProfileDashboard deferAvatarImageUntilProfileReady={true} />
       <div className="mt-10 flex flex-col gap-6 pb-5">
         {/* 학습/대결 모드 버튼 */}
         <ModeButton variant="levelup" />
