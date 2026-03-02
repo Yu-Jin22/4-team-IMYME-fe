@@ -43,13 +43,17 @@ export function RecentPvPList() {
       {recentHistories.map((history) => (
         <PvPCard
           key={history.historyId}
+          historyId={history.historyId}
+          accessToken={accessToken}
           title={history.room.name}
           resultVariant={history.myResult.isWinner ? 'win' : 'lose'}
           opponentName={history.opponent.nickname}
           categoryName={history.category.name}
           keywordName={history.keyword.name}
           onClick={() => router.push(`/mypage`)}
-          onDelete={() => {}}
+          onDelete={async () => {
+            await myPvPCardListQuery.refetch()
+          }}
         />
       ))}
     </div>
