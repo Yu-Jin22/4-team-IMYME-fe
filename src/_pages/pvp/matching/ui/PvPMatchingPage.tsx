@@ -7,28 +7,23 @@ import { toast } from 'sonner'
 import { PvPCategory } from '@/entities/pvp-card'
 import { useAccessToken } from '@/features/auth'
 import {
-  FINISHED_ROOM_STATUS,
-  OPEN_ROOM_STATUS,
-  PROCESSING_ROOM_STATUS,
+  getPvPMatchingUiState,
   PVP_MATCHING_ACCESS_DENIED_MESSAGE,
-  PVP_MATCHING_EMPTY_GUEST_NAME,
   PVP_MATCHING_ERROR_MESSAGE,
   PVP_MATCHING_INVALID_ROOM_ID_MESSAGE,
   PVP_MATCHING_LOADING_MESSAGE,
   PVP_MATCHING_PENDING_KEYWORD_MESSAGE,
   PVP_OPPONENT_SUBMITTED_TOAST_MESSAGE,
-  PVP_START_RECORDING_ERROR_MESSAGE,
   PvPBattleSection,
   PvPMatchingWaiting,
   PvPParticipants,
-  RECORDING_ROOM_STATUS,
-  startPvPRecording,
-  THINKING_ROOM_STATUS,
   usePvPMatchingAccess,
   usePvPMatchingExitGuard,
   usePvPMatchingRouting,
+  usePvPReadyAction,
   usePvPMatchingSocket,
   usePvPRecordController,
+  toPvPParticipantProfiles,
 } from '@/features/pvp'
 import { AlertModal, ModeHeader, StatusMessage } from '@/shared'
 
@@ -36,6 +31,23 @@ export function PvPMatchingPage() {
   const params = useParams<{ id: string }>()
   const roomId = Number(params.id)
   const accessToken = useAccessToken()
+
+  // 내가 준비 버튼을 이미 눌렀는지 여부
+  const [isReadySubmitted, setIsReadySubmitted] = useState(false)
+
+  function handleSelfReadyMessage() {
+    setIsReadySubmitted(true)
+  }
+
+  function handleSelfAnswerSubmittedMessage() {
+    markSubmissionCompleted()
+  }
+
+  function handleOpponentAnswerSubmittedMessage() {
+    if (isRecording && !isSubmissionCompleted) {
+      toast.info(PVP_OPPONENT_SUBMITTED_TOAST_MESSAGE)
+    }
+  }
 
   // 접근 검증/room join/participant 판별은 전용 훅으로 분리
   const {
@@ -50,11 +62,6 @@ export function PvPMatchingPage() {
     roomId,
   })
 
-  // 준비(start-recording 요청) 진행 중 상태
-  const [isStartingRecordingRequest, setIsStartingRecordingRequest] = useState(false)
-  // 내가 준비 버튼을 이미 눌렀는지 여부
-  const [isReadySubmitted, setIsReadySubmitted] = useState(false)
-
   // 매칭 소켓 구독 훅
   const {
     liveRoomStatus,
@@ -68,19 +75,24 @@ export function PvPMatchingPage() {
     // 메시지 발신자 판별용 현재 유저 id
     myUserId,
     // 내가 준비했을 때 local 상태 반영
-    onSelfReady: () => {
-      setIsReadySubmitted(true)
-    },
+    onSelfReady: handleSelfReadyMessage,
     // 내가 제출 완료한 이벤트 수신 시 로더 상태 유지
-    onSelfAnswerSubmitted: () => {
-      markSubmissionCompleted()
-    },
+    onSelfAnswerSubmitted: handleSelfAnswerSubmittedMessage,
     // 상대 제출 완료 이벤트 수신 시(내가 아직 녹음중이면) 토스트 표시
-    onOpponentAnswerSubmitted: () => {
-      if (isRecording && !isSubmissionCompleted) {
-        toast.info(PVP_OPPONENT_SUBMITTED_TOAST_MESSAGE)
-      }
-    },
+    onOpponentAnswerSubmitted: handleOpponentAnswerSubmittedMessage,
+  })
+
+  // 소켓 상태가 있으면 우선 사용하고, 없으면 서버 초기 상태를 현재 상태로 사용한다.
+  const currentRoomStatus = liveRoomStatus ?? resolvedRoomDetails?.status ?? null
+
+  // 준비 버튼 클릭 액션
+  const { canStartPvPRecording, handleReadyButtonClick } = usePvPReadyAction({
+    accessToken,
+    roomId: joinedRoomId,
+    roomStatus: currentRoomStatus,
+    isReadySubmitted,
+    setIsReadySubmitted,
+    onReadySuccess: setLiveRoomStatus,
   })
 
   // 페이지 이탈(뒤로가기/종료) 가드 훅
@@ -90,11 +102,6 @@ export function PvPMatchingPage() {
       joinedRoomId: participantRoomId,
       cleanupMatchingConnection,
     })
-
-  // 실시간 status가 있으면 우선 사용, 없으면 초기 방 상태 사용
-  const latestRoomStatus = liveRoomStatus ?? resolvedRoomDetails?.status ?? null
-
-  const isFinishedStatus = latestRoomStatus === FINISHED_ROOM_STATUS
 
   const {
     isRecording,
@@ -114,12 +121,12 @@ export function PvPMatchingPage() {
   } = usePvPRecordController({
     accessToken,
     roomId: joinedRoomId,
-    roomStatus: latestRoomStatus,
+    roomStatus: currentRoomStatus,
   })
 
-  // 종료 상태 라우팅(main/feedback)과 에러 상태 방 목록 복귀는 전용 훅에서 처리
+  // 종료 상태 라우팅(main/feedback)과 에러 상태 라우팅
   usePvPMatchingRouting({
-    latestRoomStatus,
+    latestRoomStatus: currentRoomStatus,
     participantRoomId,
     roomId,
     shouldRedirectToRooms,
@@ -149,69 +156,31 @@ export function PvPMatchingPage() {
     return <StatusMessage message={PVP_MATCHING_ACCESS_DENIED_MESSAGE} />
   }
 
-  // roomDetails는 이제 null이 아니므로 이후 UI 계산의 기준 객체로 사용한다.
-  // UI 렌더 기준 room status (실시간 우선)
-  const roomStatusForDisplay = liveRoomStatus ?? roomDetails.status
-  const isRecordingStep = roomStatusForDisplay === RECORDING_ROOM_STATUS
-  const isProcessingStep = roomStatusForDisplay === PROCESSING_ROOM_STATUS
+  // 화면 표시용 상태도 소켓 상태를 우선 사용하되, 없으면 서버 상태를 그대로 보여준다.
+  const displayRoomStatus = liveRoomStatus ?? roomDetails.status
 
-  // 참가자 정보 매핑은 JSX에서 반복하지 않도록 상단에서 한 번만 만든다.
-  const leftProfile = {
-    name: roomDetails.host.nickname,
-    avatarUrl: roomDetails.host.profileImageUrl,
-  }
-  const rightProfile = {
-    name: roomDetails.guest?.nickname ?? PVP_MATCHING_EMPTY_GUEST_NAME,
-    avatarUrl: roomDetails.guest?.profileImageUrl ?? '',
-  }
-
-  // OPEN + HOST 상태면 대기 화면(PvPMatchingWaiting) 렌더
-  const isHostWaitingOpenState =
-    roomStatusForDisplay === OPEN_ROOM_STATUS && roomDetails.host.id === myUserId
-  const shouldRenderBattleUi = !isHostWaitingOpenState
-
-  const isHeaderBackDisabled =
-    roomStatusForDisplay === RECORDING_ROOM_STATUS ||
-    roomStatusForDisplay === PROCESSING_ROOM_STATUS ||
-    roomStatusForDisplay === FINISHED_ROOM_STATUS
+  // 참가자 표시용 프로필 shape 변환은 helper에 맡긴다.
+  const { leftProfile, rightProfile } = toPvPParticipantProfiles(roomDetails)
 
   const keywordNameForDisplay =
     thinkingKeywordName ?? roomDetails.keyword?.name ?? PVP_MATCHING_PENDING_KEYWORD_MESSAGE
-  const isThinkingStep = roomStatusForDisplay === THINKING_ROOM_STATUS
 
-  const shouldShowFeedbackLoader =
-    isSubmittingSubmission || isSubmissionCompleted || isProcessingStep || isFinishedStatus
-
-  // 준비 버튼 활성 조건
-  const canStartPvPRecording =
-    isThinkingStep &&
-    Boolean(accessToken) &&
-    Boolean(joinedRoomId) &&
-    !isStartingRecordingRequest &&
-    !isReadySubmitted
-
-  // THINKING 단계에서 준비 버튼을 누르면 서버에 RECORDING 전환을 요청
-  const handleReadyButtonClick = async () => {
-    if (!accessToken || !joinedRoomId) return
-    if (isReadySubmitted || isStartingRecordingRequest) return
-
-    // 중복 클릭 방지 상태 on
-    setIsReadySubmitted(true)
-    setIsStartingRecordingRequest(true)
-    // 서버에 RECORDING 시작 요청
-    const startRecordingResult = await startPvPRecording(accessToken, joinedRoomId)
-    // 요청 종료
-    setIsStartingRecordingRequest(false)
-
-    if (!startRecordingResult.ok) {
-      setIsReadySubmitted(false)
-      toast.error(PVP_START_RECORDING_ERROR_MESSAGE)
-      return
-    }
-
-    // 성공 시 응답 status를 즉시 UI 상태에 반영
-    setLiveRoomStatus(startRecordingResult.data.status)
-  }
+  // status 기반 화면 파생값은 순수 함수에서 한 번에 계산한다.
+  const {
+    isRecordingStep,
+    isProcessingStep,
+    isThinkingStep,
+    isHeaderBackDisabled,
+    isHostWaitingOpenState,
+    shouldRenderBattleUi,
+    shouldShowFeedbackLoader,
+  } = getPvPMatchingUiState({
+    roomStatus: displayRoomStatus,
+    hostUserId: roomDetails.host.id,
+    myUserId,
+    isSubmittingSubmission,
+    isSubmissionCompleted,
+  })
 
   return (
     <div className="flex h-full w-full flex-col gap-4">
