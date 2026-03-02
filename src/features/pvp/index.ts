@@ -12,8 +12,11 @@ export { usePvPRoomCreateExitGuard } from './model/usePvPRoomCreateExitGuard'
 export { usePvPMatchingCreateFlow } from './model/usePvPMatchingCreateFlow'
 export { usePvPMatchingExitGuard } from './model/usePvPMatchingExitGuard'
 export { usePvPMatchingRouting } from './model/usePvPMatchingRouting'
+export { usePvPReadyAction } from './model/usePvPReadyAction'
 export { usePvPMatchingSocket } from './model/usePvPMatchingSocket'
 export { usePvPRecordController } from './model/usePvPRecordController'
+export { getPvPMatchingUiState } from './model/getPvPMatchingUiState'
+export { toPvPParticipantProfiles } from './model/toPvPParticipantProfiles'
 export { getPvPRoomJoinQueryKey, usePvPRoomJoinQuery } from './model/usePvPRoomJoinQuery'
 export { useRoomList } from './model/useRoomList'
 export {
@@ -29,7 +32,6 @@ export {
   PVP_MATCHING_PENDING_KEYWORD_MESSAGE,
   PVP_OPPONENT_SUBMITTED_TOAST_MESSAGE,
   PROCESSING_ROOM_STATUS,
-  PVP_START_RECORDING_ERROR_MESSAGE,
   RECORDING_ROOM_STATUS,
   THINKING_ROOM_STATUS,
 } from './model/pvpMatchingConstants'
@@ -47,8 +49,9 @@ export type {
   PvPRoomStatus,
 } from './api/getPvPRooms'
 export type { JoinPvPRoomResult } from './api/joinPvPRoom'
-export type { StartPvPRecordingResult } from './api/startPvPRecording'
 export type { PvPMatchingAccessState } from './model/usePvPMatchingAccess'
+export type { StartPvPRecordingResult } from './api/startPvPRecording'
+export type { PvPParticipantProfile } from './model/toPvPParticipantProfiles'
 export type {
   CompletePvPSubmissionPayload,
   CompletePvPSubmissionResult,
