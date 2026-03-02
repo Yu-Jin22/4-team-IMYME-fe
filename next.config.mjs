@@ -19,8 +19,8 @@ const nextConfig = {
     trustHostHeader: true,
   },
   images: {
+    dangerouslyAllowLocalIP: true,
     formats: ['image/avif', 'image/webp'],
-    domains: ['dev-imymemine.s3.ap-northeast-2.amazonaws.com'],
     remotePatterns: [
       {
         protocol: 'http',
