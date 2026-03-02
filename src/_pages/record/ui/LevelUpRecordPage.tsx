@@ -3,9 +3,8 @@
 import { useSearchParams } from 'next/navigation'
 
 import { useAccessToken } from '@/features/auth'
-import { FeedbackLoader } from '@/features/levelup-feedback'
 import { MicrophoneBox, useLevelUpRecordController } from '@/features/record'
-import { ModeHeader, AlertModal, RecordTipBox, SubjectHeader, Button } from '@/shared'
+import { AlertModal, Button, ModeHeader, RecordTipBox, StatusLoader, SubjectHeader } from '@/shared'
 
 import { useLevelUpRecordExitGuard } from '../model/useLevelUpRecordExitGuard'
 
@@ -64,7 +63,7 @@ export function LevelUpRecordPage() {
         keywordValue={data?.keywordName ?? ''}
       />
       {isSubmittingFeedback || uploadStatus === 'PENDING' ? (
-        <FeedbackLoader status="PENDING" />
+        <StatusLoader status="PENDING" />
       ) : (
         <MicrophoneBox
           isStartingWarmup={isStartingWarmup}

@@ -32,7 +32,7 @@ const getFileExtensionFromContentType = (contentType: string) => {
   return FILE_NAME_EXTENSION_WEBM
 }
 
-// 업로드용 파일명을 생성한다. 예: pvp-submission-1700000000000.webm
+// 업로드용 파일명을 생성 예: pvp-submission-1700000000000.webm
 const buildPvPSubmissionFileName = (contentType: string) => {
   // contentType 기준 확장자 계산
   const extension = getFileExtensionFromContentType(contentType)
@@ -101,7 +101,7 @@ export function usePvPRecordController({
     // 시작 중이면 중복 시작하지 않는다.
     if (isStartingLocalRecordingRef.current) return
 
-    // 새 녹음 사이클 시작 시 제출 상태를 초기화한다.
+    // 새 녹음 사이클 시작 시 제출 상태를 초기화
     hasSubmittedRef.current = false
     setIsSubmissionCompleted(false)
 
@@ -133,7 +133,7 @@ export function usePvPRecordController({
           return
         }
 
-        // blob MIME 타입에서 파라미터를 제거해 기본 MIME으로 정규화한다.
+        // blob MIME 타입에서 파라미터를 제거해 기본 MIME으로 정규화
         const normalizedMimeType = completedBlob.type.split(';')[0]
         const contentType = resolveAudioContentType(normalizedMimeType)
 

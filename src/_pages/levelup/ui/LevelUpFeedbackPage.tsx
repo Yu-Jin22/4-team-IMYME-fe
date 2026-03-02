@@ -5,12 +5,11 @@ import { useAccessToken } from '@/features/auth'
 import { INITIAL_ATTEMPT_DURATION_SECONDS } from '@/features/levelup'
 import {
   deleteAttempt,
-  FeedbackLoader,
   FeedbackTab,
   useLevelUpFeedbackController,
 } from '@/features/levelup-feedback'
 import { createAttempt } from '@/features/record'
-import { AlertModal, ModeHeader, SubjectHeader, Button } from '@/shared'
+import { AlertModal, Button, ModeHeader, StatusLoader, SubjectHeader } from '@/shared'
 
 const ACTIVE_CARD_COUNT_INCREMENT = 1
 
@@ -60,7 +59,7 @@ export function LevelUpFeedbackPage() {
             showButtons={false}
           />
         ) : (
-          <FeedbackLoader
+          <StatusLoader
             status={status}
             step={processingStep}
           />

@@ -22,10 +22,10 @@ export type PvPCardResultSubject = {
 
 export type PvPCardResultFeedback = {
   summary: string
-  keywords: string
+  keywords: string[]
   facts: string
   understanding: string
-  socraticFeedback: string
+  personalizedFeedback: string
 }
 
 export type PvPUser = {
