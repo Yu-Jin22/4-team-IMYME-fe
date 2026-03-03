@@ -1,68 +1,80 @@
 'use client'
 
 import { ChevronLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
-import { Avatar, Nickname, StatCards } from '@/entities/user'
-import { useProfile } from '@/entities/user/model/useUserStore'
+import {
+  Avatar,
+  Nickname,
+  StatCards,
+  useMyProfileQuery,
+  useProfile,
+  useSyncMyProfile,
+} from '@/entities/user'
+import { useAccessToken } from '@/features/auth'
 
 const AVATAR_SIZE_PX = 60
+const FALLBACK_NICKNAME = '로딩중...'
+const FALLBACK_STAT_VALUE = 0
+const MAIN_PAGE_PATH = '/main'
+const MY_PAGE_PATH = '/mypage'
 
 interface ProfileDashboardProps {
-  navigateToMyPage?: boolean
-  showBackButton?: boolean
+  deferAvatarImageUntilProfileReady?: boolean
 }
 
 export function ProfileDashboard({
-  navigateToMyPage = true,
-  showBackButton = false,
+  deferAvatarImageUntilProfileReady = false,
 }: ProfileDashboardProps) {
   const router = useRouter()
-
+  const pathname = usePathname()
+  const accessToken = useAccessToken()
   const profile = useProfile()
+  const { data: myProfile } = useMyProfileQuery(accessToken, { enabled: Boolean(accessToken) })
+  useSyncMyProfile({ accessToken, myProfile })
+  const resolvedProfile = myProfile ?? profile
 
-  const handleNavigateToMyPage = () => {
-    if (!navigateToMyPage) {
-      return
-    }
-
-    router.push('/mypage')
-  }
-
-  const handleBackButton = () => {
-    if (!showBackButton) return
-
-    router.back()
-  }
+  const isMainPage = pathname === MAIN_PAGE_PATH
+  const isMyPage = pathname === MY_PAGE_PATH
+  const isProfileReady = Boolean(resolvedProfile.nickname || resolvedProfile.profileImageUrl)
+  const shouldDeferAvatarImage = deferAvatarImageUntilProfileReady && !myProfile
+  const avatarSrcForRender = shouldDeferAvatarImage ? '' : resolvedProfile.profileImageUrl
 
   return (
     <div className="relative w-full">
       <div
-        className={['absolute rounded-md p-1', showBackButton ? '' : 'invisible'].join(' ')}
-        onClick={handleBackButton}
+        className={['absolute rounded-md p-1', isMyPage ? '' : 'invisible'].join(' ')}
+        onClick={() => {
+          router.push('/main')
+        }}
       >
         <ChevronLeft />
       </div>
+
       <div
         className="w-full cursor-pointer"
-        onClick={handleNavigateToMyPage}
+        onClick={() => {
+          if (isMainPage) router.push('/mypage')
+        }}
       >
+        {/* 프로필 요약 */}
         <div className="grid w-full auto-cols-max grid-flow-col items-start gap-4">
           <div
             className="ml-10 overflow-hidden rounded-full"
             style={{ width: AVATAR_SIZE_PX, height: AVATAR_SIZE_PX }}
           >
             <Avatar
-              avatar_src={profile.profileImageUrl}
+              avatar_src={avatarSrcForRender}
               size={AVATAR_SIZE_PX}
             />
           </div>
-          <Nickname nickname={profile.nickname} />
+          <Nickname nickname={isProfileReady ? resolvedProfile.nickname : FALLBACK_NICKNAME} />
         </div>
+
         <StatCards
-          cardCount={profile.activeCardCount}
-          dates={profile.consecutiveDays}
-          levelCount={profile.level}
+          cardCount={isProfileReady ? resolvedProfile.activeCardCount : FALLBACK_STAT_VALUE}
+          winCount={isProfileReady ? resolvedProfile.winCount : FALLBACK_STAT_VALUE}
+          levelCount={isProfileReady ? resolvedProfile.level : FALLBACK_STAT_VALUE}
         />
       </div>
     </div>

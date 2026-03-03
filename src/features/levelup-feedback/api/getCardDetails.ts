@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared'
+import { httpClient } from '@/shared/api'
 
 export type CardAttempt = {
   id: number

@@ -1,0 +1,341 @@
+name: Frontend CI/CD release mvp2
+
+on:
+  pull_request:
+    branches:
+      - release
+  push:
+    branches:
+      - release
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: frontend-cicd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # 1) CI
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Node.js 설정
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 3. pnpm 설치
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      # 4. pnpm 캐시
+      - name: Cache pnpm
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      # 5. 의존성 설치
+      - name: Install dependencies
+        run: pnpm install
+
+      # 6. 정적 분석 (에러 로그 캡처)
+      - name: Run ESLint
+        id: lint
+        continue-on-error: true
+        run: |
+          mkdir -p error-logs
+          pnpm lint 2>&1 | tee error-logs/lint.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Run Prettier
+        id: prettier
+        continue-on-error: true
+        run: |
+          pnpm prettier --check . 2>&1 | tee error-logs/prettier.log
+          exit ${PIPESTATUS[0]}
+
+      # 7. 타입 체크
+      - name: Type Check
+        id: typecheck
+        continue-on-error: true
+        run: |
+          pnpm tsc --noEmit 2>&1 | tee error-logs/typecheck.log
+          exit ${PIPESTATUS[0]}
+
+      # 에러 로그 업로드 (검사 실패 시)
+      - name: Upload error logs
+        if: steps.lint.outcome == 'failure' || steps.prettier.outcome == 'failure' || steps.typecheck.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs
+          path: error-logs/
+          retention-days: 1
+
+      # 검사 실패 시 CI 실패 처리
+      - name: Check for failures
+        if: steps.lint.outcome == 'failure' || steps.prettier.outcome == 'failure' || steps.typecheck.outcome == 'failure'
+        run: |
+          echo "❌ CI checks failed:"
+          [ "${{ steps.lint.outcome }}" == "failure" ] && echo "  - ESLint failed"
+          [ "${{ steps.prettier.outcome }}" == "failure" ] && echo "  - Prettier failed"
+          [ "${{ steps.typecheck.outcome }}" == "failure" ] && echo "  - TypeScript failed"
+          exit 1
+
+      # 8. 빌드 검증
+      - name: Build
+        env:
+          NEXT_PUBLIC_KAKAO_REST_API_KEY: ${{ secrets.NEXT_PUBLIC_KAKAO_REST_API_KEY }}
+          NEXT_PUBLIC_KAKAO_REDIRECT_URI: ${{ secrets.NEXT_PUBLIC_RELEASE_KAKAO_REDIRECT_URI }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_RELEASE_API_BASE_URL }}
+          NEXT_PUBLIC_SECURE: ${{ secrets.NEXT_PUBLIC_RELEASE_SECURE }}
+          NODE_ENV: ${{ secrets.NODE_RELEASE_ENV }}
+          NEXT_PUBLIC_SERVER_URL: ${{ secrets.NEXT_PUBLIC_RELEASE_SERVER_URL }}
+          E2E_BASE_URL: ${{ secrets.E2E_RELEASE_BASE_URL }}
+          PERF_BASE_URL: ${{ secrets.PERF_RELEASE_BASE_URL }}
+          ALLOW_E2E_LOGIN: ${{ secrets.ALLOW_RELEASE_E2E_LOGIN }}
+          NEXT_PUBLIC_PVP_OPEN: ${{ secrets.PVP_RELEASE_OPEN }}
+        run: pnpm next build
+
+  ci-notify-success:
+    needs: ci
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord CI success
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: success
+          title: '🟢 Frontend CI Success'
+          content: '<@&${{ secrets.FRONTEND_ROLE_ID }}> 프론트엔드 CI 성공!'
+          color: 0x00ff00
+
+  ci-notify-failure:
+    needs: ci
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download error logs
+        uses: actions/download-artifact@v4
+        with:
+          name: error-logs
+          path: error-logs/
+        continue-on-error: true
+
+      - name: Prepare error message
+        id: error_msg
+        run: |
+          ERROR_MSG=""
+
+          if [ -f error-logs/lint.log ]; then
+            LINT_ERRORS=$(grep -E "warning|error" error-logs/lint.log | head -20 || true)
+            if [ -n "$LINT_ERRORS" ]; then
+              ERROR_MSG="${ERROR_MSG}📋 **ESLint:**\n\`\`\`\n${LINT_ERRORS}\n\`\`\`\n"
+            fi
+          fi
+
+          if [ -f error-logs/prettier.log ]; then
+            PRETTIER_ERRORS=$(grep -E "^\[warn\]|Code style issues" error-logs/prettier.log | head -20 || true)
+            if [ -n "$PRETTIER_ERRORS" ]; then
+              ERROR_MSG="${ERROR_MSG}🎨 **Prettier:**\n\`\`\`\n${PRETTIER_ERRORS}\n\`\`\`\n"
+            fi
+          fi
+
+          if [ -f error-logs/typecheck.log ]; then
+            TSC_ERRORS=$(grep -E "error TS|\.tsx?\(" error-logs/typecheck.log | head -20 || true)
+            if [ -n "$TSC_ERRORS" ]; then
+              ERROR_MSG="${ERROR_MSG}📝 **TypeScript:**\n\`\`\`\n${TSC_ERRORS}\n\`\`\`\n"
+            fi
+          fi
+
+          if [ -z "$ERROR_MSG" ]; then
+            ERROR_MSG="빌드 또는 기타 단계에서 오류가 발생했습니다. GitHub Actions 로그를 확인하세요."
+          fi
+
+          echo "msg<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$ERROR_MSG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Discord CI failure
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: failure
+          title: '🔴 Frontend CI Failed'
+          content: '<@&${{ secrets.FRONTEND_ROLE_ID }}> 프론트엔드 CI 실패!'
+          description: ${{ steps.error_msg.outputs.msg }}
+          color: 0xff0000
+
+  # 2) CD
+  cd:
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. AWS 자격증명 설정
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      # 3. ECR 로그인
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 4. Docker Buildx 설정
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 5. Docker 이미지 빌드 & ECR 푸시
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/arm64
+          build-args: |
+            NEXT_PUBLIC_KAKAO_REST_API_KEY=${{ secrets.NEXT_PUBLIC_KAKAO_REST_API_KEY }}
+            NEXT_PUBLIC_KAKAO_REDIRECT_URI=${{ secrets.NEXT_PUBLIC_RELEASE_KAKAO_REDIRECT_URI }}
+            NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_RELEASE_API_BASE_URL }}
+            NEXT_PUBLIC_SECURE=${{ secrets.NEXT_PUBLIC_RELEASE_SECURE }}
+            NEXT_PUBLIC_SERVER_URL=${{ secrets.NEXT_PUBLIC_RELEASE_SERVER_URL }}
+            NEXT_PUBLIC_PVP_OPEN=${{ secrets.PVP_RELEASE_OPEN }}
+          tags: |
+            219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:${{ github.sha }}
+            219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:release-latest
+          cache-from: type=registry,ref=219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:buildcache
+          cache-to: type=registry,ref=219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:buildcache,mode=max
+
+      # 6. SSM으로 릴리즈 서버에 배포
+      - name: Deploy with SSM (docker compose)
+        run: |
+          set -euo pipefail
+
+          cat > /tmp/ssm-params.json << 'ENDJSON'
+          {
+            "commands": [
+              "set -eu",
+              "cd /home/ubuntu",
+              "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 219268921033.dkr.ecr.ap-northeast-2.amazonaws.com",
+              "IMAGE_URI=219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:release-latest",
+              "docker pull $IMAGE_URI",
+              "docker compose up -d",
+              "docker image prune -f"
+            ]
+          }
+          ENDJSON
+
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:aws:autoscaling:groupName,Values=mine_mvp1_fe_asg" \
+            --comment "frontend release deploy (${GITHUB_SHA})" \
+            --parameters file:///tmp/ssm-params.json \
+            --region ap-northeast-2 \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "SSM Command ID: ${COMMAND_ID}"
+
+          for i in {1..60}; do
+            STATUS=$(aws ssm list-commands \
+              --command-id "${COMMAND_ID}" \
+              --region ap-northeast-2 \
+              --query "Commands[0].Status" \
+              --output text)
+            echo "SSM status: ${STATUS}"
+
+            if [ "${STATUS}" = "Success" ]; then
+              break
+            fi
+
+            if [ "${STATUS}" = "Failed" ] || [ "${STATUS}" = "Cancelled" ] || [ "${STATUS}" = "TimedOut" ] || [ "${STATUS}" = "Cancelling" ]; then
+              aws ssm list-command-invocations \
+                --command-id "${COMMAND_ID}" \
+                --details \
+                --region ap-northeast-2 \
+                --output json
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+          if [ "${STATUS}" != "Success" ]; then
+            echo "SSM deploy timeout"
+            aws ssm list-command-invocations \
+              --command-id "${COMMAND_ID}" \
+              --details \
+              --region ap-northeast-2 \
+              --output json
+            exit 1
+          fi
+
+      # 7. 배포 후 스모크 테스트
+      - name: Post-deploy Smoke Test
+        run: |
+          set -euo pipefail
+
+          BASE_URL="${{ secrets.RELEASE_BASE_URL }}"
+
+          echo "🔎 Smoke 1) Health check: ${BASE_URL}/api/health"
+          curl -fsS "${BASE_URL}/api/health" >/dev/null
+
+          echo "🔎 Smoke 2) Main page (follow redirect) : ${BASE_URL}/"
+          curl -fsSL -o /tmp/home.html "${BASE_URL}/" >/dev/null
+
+          grep -qi "<html" /tmp/home.html || {
+            echo "❌ Main page is not HTML"
+            head -n 40 /tmp/home.html || true
+            exit 1
+          }
+
+          echo "✅ Frontend smoke tests passed"
+
+  cd-notify-success:
+    needs: cd
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord CD success
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: success
+          title: '🟢 Frontend Deploy Success'
+          content: '프론트엔드 릴리즈 서버 배포 완료!'
+          color: 0x00ff00
+
+  cd-notify-failure:
+    needs: cd
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord CD failure
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: failure
+          title: '🔴 Frontend Deploy Failed'
+          content: '<@&${{ secrets.FRONTEND_ROLE_ID }}> 프론트엔드 릴리즈 서버 배포 실패!'
+          color: 0xff0000

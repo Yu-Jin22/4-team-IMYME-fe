@@ -2,7 +2,7 @@ import axios from 'axios'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-import { httpClient } from '@/shared'
+import { httpClient } from '@/shared/api'
 
 const REFRESH_TOKEN_COOKIE = 'refresh_token'
 const COOKIE_PATH = '/'
@@ -17,11 +17,11 @@ const clearRefreshTokenCookie = (res: NextResponse) => {
   })
 }
 
-export async function POST(req: Request) {
+export async function POST() {
   const refreshToken = (await cookies()).get('refresh_token')?.value
 
   if (!refreshToken) {
-    const res = NextResponse.redirect(new URL('/login', req.url))
+    const res = NextResponse.json({ error: 'no_refresh_token' }, { status: 401 })
     clearRefreshTokenCookie(res)
     return res
   }
@@ -35,14 +35,16 @@ export async function POST(req: Request) {
 
     const accessToken = response.data?.data?.accessToken
     const nextRefreshToken = response.data?.data?.refreshToken
+    const expiresIn = response.data?.data?.expiresIn
 
     if (!accessToken) {
-      const res = NextResponse.redirect(new URL('/login', req.url))
+      const res = NextResponse.json({ error: 'no_access_token' }, { status: 401 })
       clearRefreshTokenCookie(res)
       return res
     }
 
-    const res = NextResponse.json({ access_token: accessToken })
+    // 클라이언트가 선제 갱신 스케줄을 잡을 수 있도록 expiresIn도 함께 전달한다.
+    const res = NextResponse.json({ access_token: accessToken, expiresIn })
 
     if (nextRefreshToken) {
       res.cookies.set('refresh_token', String(nextRefreshToken), {
@@ -60,7 +62,7 @@ export async function POST(req: Request) {
       const data = err.response?.data
       console.error('[token refresh error]', status, data)
     }
-    const res = NextResponse.redirect(new URL('/login', req.url))
+    const res = NextResponse.json({ error: 'refresh_failed' }, { status: 401 })
     clearRefreshTokenCookie(res)
     return res
   }

@@ -1,4 +1,4 @@
-name: Frontend CI/CD v2
+name: Frontend CI/CD prod mvp2
 
 on:
   pull_request:
@@ -94,70 +94,21 @@ jobs:
           [ "${{ steps.typecheck.outcome }}" == "failure" ] && echo "  - TypeScript failed"
           exit 1
 
-      # 8. 빌드
+      # 8. 빌드 검증
       - name: Build
         env:
           NEXT_PUBLIC_KAKAO_REST_API_KEY: ${{ secrets.NEXT_PUBLIC_KAKAO_REST_API_KEY }}
-          NEXT_PUBLIC_KAKAO_REDIRECT_URI: ${{ secrets.NEXT_PUBLIC_KAKAO_REDIRECT_URI }}
-          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
-          NEXT_PUBLIC_SECURE: ${{ secrets.NEXT_PUBLIC_SECURE }}
-          NODE_ENV: ${{ secrets.NODE_ENV }}
-          NEXT_PUBLIC_SERVER_URL: ${{ secrets.NEXT_PUBLIC_SERVER_URL }}
-          NEXT_PUBLIC_GOOGLE_ANALYTICS: ${{ secrets.NEXT_PUBLIC_GOOGLE_ANALYTICS }}
-          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
-
-        run: |
-          echo "=== Build env check (masked) ==="
-          echo "NODE_ENV=$NODE_ENV"
-          echo "NEXT_PUBLIC_SERVER_URL=${NEXT_PUBLIC_SERVER_URL}"
-          echo "NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}"
-          echo "NEXT_PUBLIC_SECURE=$NEXT_PUBLIC_SECURE"
-          echo "NEXT_PUBLIC_KAKAO_REDIRECT_URI=${NEXT_PUBLIC_KAKAO_REDIRECT_URI}"
-          echo "NEXT_PUBLIC_GOOGLE_ANALYTICS=${NEXT_PUBLIC_GOOGLE_ANALYTICS}"
-          echo "E2E_BASE_URL=$E2E_BASE_URL"
-
-          pnpm next build
-
-      # 9. 이전 아티팩트 삭제
-      - name: Delete old artifacts
-        if: github.ref == 'refs/heads/main' || github.event.pull_request.merged == true
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const artifacts = await github.rest.actions.listArtifactsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
-            for (const artifact of artifacts.data.artifacts) {
-              if (artifact.name === 'frontend-prod-latest') {
-                await github.rest.actions.deleteArtifact({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  artifact_id: artifact.id,
-                });
-              }
-            }
-
-      # 10. 배포용 파일 준비
-      - name: Prepare deployment files
-        if: github.ref == 'refs/heads/main' || github.event.pull_request.merged == true
-        run: |
-          mkdir -p deploy
-          cp -r .next deploy/
-          cp -r public deploy/ || true
-          cp package.json deploy/
-          cp pnpm-lock.yaml deploy/
-
-      # 11. 빌드 결과 업로드
-      - name: Upload artifact
-        if: github.ref == 'refs/heads/main' || github.event.pull_request.merged == true
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-prod-latest
-          path: deploy/
-          retention-days: 15
-          overwrite: true
-          include-hidden-files: true
+          NEXT_PUBLIC_KAKAO_REDIRECT_URI: ${{ secrets.NEXT_PUBLIC_PROD_KAKAO_REDIRECT_URI }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_PROD_API_BASE_URL }}
+          NEXT_PUBLIC_SECURE: ${{ secrets.NEXT_PUBLIC_PROD_SECURE }}
+          NODE_ENV: ${{ secrets.NODE_PROD_ENV }}
+          NEXT_PUBLIC_SERVER_URL: ${{ secrets.NEXT_PUBLIC_PROD_SERVER_URL }}
+          NEXT_PUBLIC_GOOGLE_ANALYTICS: ${{ secrets.NEXT_PUBLIC_PROD_GOOGLE_ANALYTICS }}
+          E2E_BASE_URL: ${{ secrets.E2E_PROD_BASE_URL }}
+          PERF_BASE_URL: ${{ secrets.PERF_PROD_BASE_URL }}
+          ALLOW_E2E_LOGIN: ${{ secrets.ALLOW_PROD_E2E_LOGIN }}
+          NEXT_PUBLIC_PVP_OPEN: ${{ secrets.PVP_PROD_OPEN }}
+        run: pnpm next build
 
   ci-notify-success:
     needs: ci
@@ -215,7 +166,6 @@ jobs:
             ERROR_MSG="빌드 또는 기타 단계에서 오류가 발생했습니다. GitHub Actions 로그를 확인하세요."
           fi
 
-          # GitHub Actions output에 저장 (멀티라인)
           echo "msg<<EOF" >> $GITHUB_OUTPUT
           echo -e "$ERROR_MSG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -237,120 +187,112 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 0️⃣ Runner IP 획득 및 보안 그룹 추가
-      - name: Get Runner IP
-        id: ip
-        run: echo "ipv4=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+      # 1. Checkout
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Add IP to Security Group
-        run: |
-          aws ec2 authorize-security-group-ingress \
-            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
-            --protocol tcp \
-            --port 22 \
-            --cidr "${{ steps.ip.outputs.ipv4 }}/32"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ap-northeast-2
-
-      # 1. SSH 설정
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEV_SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.PROD_SERVER_HOST }} >> ~/.ssh/known_hosts
-
-      # 2. 아티팩트 다운로드
-      - name: Download frontend artifact
-        uses: actions/download-artifact@v4
+      # 2. AWS 자격증명 설정
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          name: frontend-prod-latest
-          path: ./frontend-build
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
 
-      # 3. 서버 전송 (압축해서 빠르게)
-      - name: Copy artifact to Prod server
+      # 3. ECR 로그인
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 4. Docker Buildx 설정
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 5. Docker 이미지 빌드 & ECR 푸시
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/arm64
+          build-args: |
+            NEXT_PUBLIC_KAKAO_REST_API_KEY=${{ secrets.NEXT_PUBLIC_KAKAO_REST_API_KEY }}
+            NEXT_PUBLIC_KAKAO_REDIRECT_URI=${{ secrets.NEXT_PUBLIC_PROD_KAKAO_REDIRECT_URI }}
+            NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_PROD_API_BASE_URL }}
+            NEXT_PUBLIC_SECURE=${{ secrets.NEXT_PUBLIC_PROD_SECURE }}
+            NEXT_PUBLIC_SERVER_URL=${{ secrets.NEXT_PUBLIC_PROD_SERVER_URL }}
+            NEXT_PUBLIC_PVP_OPEN=${{ secrets.PVP_PROD_OPEN }}
+          tags: |
+            219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:${{ github.sha }}
+            219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:prod-latest
+          cache-from: type=registry,ref=219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:buildcache
+          cache-to: type=registry,ref=219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:buildcache,mode=max
+
+      # 6. SSM으로 프로덕션 서버에 배포
+      - name: Deploy with SSM (docker compose)
         run: |
-          tar -czf frontend-build.tar.gz -C ./frontend-build .
-          scp -i ~/.ssh/id_rsa frontend-build.tar.gz ubuntu@${{ secrets.PROD_SERVER_HOST }}:/home/ubuntu/mine/frontend/
-          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.PROD_SERVER_HOST }} 'rm -rf /home/ubuntu/mine/frontend/build/* && tar -xzf /home/ubuntu/mine/frontend/frontend-build.tar.gz -C /home/ubuntu/mine/frontend/build && rm /home/ubuntu/mine/frontend/frontend-build.tar.gz'
+          set -euo pipefail
 
-      # 4. 배포 (release/current 구조)
-      - name: Deploy to Prod Server
-        run: |
-          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.PROD_SERVER_HOST }} 'bash -s' <<'EOF'
-          set -e
+          cat > /tmp/ssm-params.json << 'ENDJSON'
+          {
+            "commands": [
+              "set -eu",
+              "cd /home/ubuntu",
+              "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 219268921033.dkr.ecr.ap-northeast-2.amazonaws.com",
+              "IMAGE_URI=219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:prod-latest",
+              "docker pull $IMAGE_URI",
+              "docker compose up -d",
+              "docker image prune -f"
+            ]
+          }
+          ENDJSON
 
-          APP_DIR=/home/ubuntu/mine/frontend
-          RELEASES_DIR=$APP_DIR/releases
-          SHARED_DIR=$APP_DIR/shared
-          RELEASE_ID=$(date +%Y%m%d%H%M%S)
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:server,Values=prod" \
+            --comment "frontend prod deploy (${GITHUB_SHA})" \
+            --parameters file:///tmp/ssm-params.json \
+            --region ap-northeast-2 \
+            --query "Command.CommandId" \
+            --output text)
 
-          CURRENT_LINK=$APP_DIR/current
-          RELEASE_DIR=$RELEASES_DIR/$RELEASE_ID
+          echo "SSM Command ID: ${COMMAND_ID}"
 
-          mkdir -p "$RELEASE_DIR"
+          for i in {1..60}; do
+            STATUS=$(aws ssm list-commands \
+              --command-id "${COMMAND_ID}" \
+              --region ap-northeast-2 \
+              --query "Commands[0].Status" \
+              --output text)
+            echo "SSM status: ${STATUS}"
 
-          # 1. 빌드 아티팩트 복사 (.next, package.json, pnpm-lock.yaml)
-          cp -r $APP_DIR/build/.next "$RELEASE_DIR/"
-          cp -r $APP_DIR/build/public "$RELEASE_DIR/"
-          cp $APP_DIR/build/package.json "$RELEASE_DIR/"
-          cp $APP_DIR/build/pnpm-lock.yaml "$RELEASE_DIR/"
-
-          # 2. 의존성 설치
-          cd "$RELEASE_DIR"
-          pnpm install --prod --ignore-scripts --force
-
-
-          # 3. current 심볼릭 링크 교체
-          rm -rf "$CURRENT_LINK"
-          ln -s "$RELEASE_DIR" "$CURRENT_LINK"
-
-          # 4. 이전 release 3개만 유지
-          ls -1dt "$RELEASES_DIR"/* | tail -n +4 | xargs -r rm -rf
-
-          # 5. PM2로 프론트 서버 재시작
-          cd "$CURRENT_LINK"
-
-          # shared env 로드 (없으면 실패하게)
-          ENV_FILE="$SHARED_DIR/.env"
-          if [ ! -f "$ENV_FILE" ]; then
-            echo "❌ env file not found: $ENV_FILE"
-            exit 1
-          fi
-
-          # env를 export 상태로 로드
-          set -a
-          source "$ENV_FILE"
-          set +a
-
-          pm2 delete frontend || true
-          pm2 start "npx next start -p 3000" \
-            --name frontend \
-            --time
-
-          # 6. Health Check
-          echo "🔍 Frontend health check"
-          for i in {1..10}; do
-            if curl -sf http://127.0.0.1:3000/api/health > /dev/null; then
-              echo "✅ Frontend health check passed"
+            if [ "${STATUS}" = "Success" ]; then
               break
             fi
-            echo "⏳ Waiting for frontend..."
-            sleep 3
+
+            if [ "${STATUS}" = "Failed" ] || [ "${STATUS}" = "Cancelled" ] || [ "${STATUS}" = "TimedOut" ] || [ "${STATUS}" = "Cancelling" ]; then
+              aws ssm list-command-invocations \
+                --command-id "${COMMAND_ID}" \
+                --details \
+                --region ap-northeast-2 \
+                --output json
+              exit 1
+            fi
+
+            sleep 10
           done
 
-          if ! curl -sf http://127.0.0.1:3000/api/health > /dev/null; then
-            echo "❌ Frontend health check failed"
-            pm2 logs frontend --lines 50
+          if [ "${STATUS}" != "Success" ]; then
+            echo "SSM deploy timeout"
+            aws ssm list-command-invocations \
+              --command-id "${COMMAND_ID}" \
+              --details \
+              --region ap-northeast-2 \
+              --output json
             exit 1
           fi
 
-
-          EOF
-
-      # 5. 배포 후 스모크 테스트
+      # 7. 배포 후 스모크 테스트
       - name: Post-deploy Smoke Test
         run: |
           set -euo pipefail
@@ -363,7 +305,6 @@ jobs:
           echo "🔎 Smoke 2) Main page (follow redirect) : ${BASE_URL}/"
           curl -fsSL -o /tmp/home.html "${BASE_URL}/" >/dev/null
 
-          # HTML인지 최소 확인(502/JSON/리다이렉트 루프 같은 경우 걸러냄)
           grep -qi "<html" /tmp/home.html || {
             echo "❌ Main page is not HTML"
             head -n 40 /tmp/home.html || true
@@ -371,20 +312,6 @@ jobs:
           }
 
           echo "✅ Frontend smoke tests passed"
-
-      # 6. 보안 그룹에서 IP 제거 (항상 실행)
-      - name: Remove IP from Security Group
-        if: always()
-        run: |
-          aws ec2 revoke-security-group-ingress \
-            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
-            --protocol tcp \
-            --port 22 \
-            --cidr "${{ steps.ip.outputs.ipv4 }}/32"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ap-northeast-2
 
   cd-notify-success:
     needs: cd
@@ -411,5 +338,5 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: failure
           title: '🔴 Frontend Deploy Failed'
-          content: '<@&${{ secrets.FRONTEND_ROLE_ID }}> 프론트엔드 운영 서포 배포 실패!'
+          content: '<@&${{ secrets.FRONTEND_ROLE_ID }}> 프론트엔드 운영 서버 배포 실패!'
           color: 0xff0000

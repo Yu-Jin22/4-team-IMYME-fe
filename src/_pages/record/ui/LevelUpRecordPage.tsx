@@ -1,12 +1,30 @@
 'use client'
 
-import { FeedbackLoader } from '@/features/levelup-feedback'
+import { useSearchParams } from 'next/navigation'
+
+import { useAccessToken } from '@/features/auth'
 import { MicrophoneBox, useLevelUpRecordController } from '@/features/record'
-import { LevelUpHeader, AlertModal, RecordTipBox, SubjectHeader, Button } from '@/shared'
+import { AlertModal, Button, ModeHeader, RecordTipBox, StatusLoader, SubjectHeader } from '@/shared'
+
+import { useLevelUpRecordExitGuard } from '../model/useLevelUpRecordExitGuard'
 
 const RECORD_PROGRESS_VALUE = 100
 const RECORD_STEP_LABEL = '3/3'
+
+function parseOptionalNumber(value: string | null): number | undefined {
+  if (!value) return undefined
+
+  const parsedValue = Number(value)
+  return Number.isNaN(parsedValue) ? undefined : parsedValue
+}
+
 export function LevelUpRecordPage() {
+  const searchParams = useSearchParams()
+  const accessToken = useAccessToken()
+  const cardId = parseOptionalNumber(searchParams.get('cardId'))
+  const attemptId = parseOptionalNumber(searchParams.get('attemptId'))
+  const attemptNo = parseOptionalNumber(searchParams.get('attemptNo'))
+
   const {
     data,
     isSubmittingFeedback,
@@ -14,23 +32,27 @@ export function LevelUpRecordPage() {
     isStartingWarmup,
     warmupError,
     isMicAlertOpen,
-    isBackAlertOpen,
     isRecording,
     isPaused,
     elapsedSeconds,
     recordedBlob,
     handleMicClick,
-    handleBackConfirm,
-    handleBackCancel,
     handleMicAlertOpenChange,
-    handleBackAlertOpenChange,
     handleRecordingComplete,
-  } = useLevelUpRecordController()
+  } = useLevelUpRecordController({
+    accessToken,
+    cardId,
+    attemptId,
+    attemptNo,
+  })
+  const { isBackAlertOpen, handleBackConfirm, handleBackCancel, handleBackAlertOpenChange } =
+    useLevelUpRecordExitGuard()
 
   return (
     <div className="flex h-full w-full flex-1 flex-col">
-      <LevelUpHeader
-        variant="recording"
+      <ModeHeader
+        mode="levelup"
+        step="recording"
         onBack={() => handleBackAlertOpenChange(true)}
         progressValue={RECORD_PROGRESS_VALUE}
         stepLabel={RECORD_STEP_LABEL}
@@ -41,7 +63,7 @@ export function LevelUpRecordPage() {
         keywordValue={data?.keywordName ?? ''}
       />
       {isSubmittingFeedback || uploadStatus === 'PENDING' ? (
-        <FeedbackLoader status="PENDING" />
+        <StatusLoader status="PENDING" />
       ) : (
         <MicrophoneBox
           isStartingWarmup={isStartingWarmup}
