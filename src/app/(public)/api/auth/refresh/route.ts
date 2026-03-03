@@ -5,6 +5,8 @@ import { NextResponse } from 'next/server'
 import { httpClient } from '@/shared/api'
 
 const REFRESH_TOKEN_COOKIE = 'refresh_token'
+const E2E_ACCESS_TOKEN_COOKIE = 'e2e_access_token'
+const E2E_ACCESS_TOKEN_EXPIRES_AT_COOKIE = 'e2e_access_token_expires_at'
 const COOKIE_PATH = '/'
 
 const clearRefreshTokenCookie = (res: NextResponse) => {
@@ -18,7 +20,19 @@ const clearRefreshTokenCookie = (res: NextResponse) => {
 }
 
 export async function POST() {
-  const refreshToken = (await cookies()).get('refresh_token')?.value
+  const cookieStore = await cookies()
+  const e2eAccessToken = cookieStore.get(E2E_ACCESS_TOKEN_COOKIE)?.value
+  const e2eAccessTokenExpiresAt = cookieStore.get(E2E_ACCESS_TOKEN_EXPIRES_AT_COOKIE)?.value
+
+  // E2E에서는 refresh token 회전/무효화 정책과 분리해 access token만으로 테스트를 안정화한다.
+  if (process.env.ALLOW_E2E_LOGIN === 'true' && e2eAccessToken) {
+    return NextResponse.json({
+      access_token: e2eAccessToken,
+      expiresIn: Number(e2eAccessTokenExpiresAt) || 0,
+    })
+  }
+
+  const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value
 
   if (!refreshToken) {
     const res = NextResponse.json({ error: 'no_refresh_token' }, { status: 401 })

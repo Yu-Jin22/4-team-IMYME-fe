@@ -14,10 +14,25 @@ const REFRESH_PATH = '/api/auth/refresh'
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL ?? ''
 const REFRESH_LEEWAY_SECONDS = 60
 const REFRESH_LEEWAY_MS = REFRESH_LEEWAY_SECONDS * 1000
+const E2E_ACCESS_TOKEN_COOKIE = 'e2e_access_token'
+const E2E_ACCESS_TOKEN_EXPIRES_AT_COOKIE = 'e2e_access_token_expires_at'
 
 const buildServerUrl = (path: string) => {
   const normalizedBase = SERVER_URL.replace(/\/$/, '')
   return `${normalizedBase}${path}`
+}
+
+const getCookieValue = (cookieName: string) => {
+  if (typeof document === 'undefined') return ''
+
+  const cookiePrefix = `${cookieName}=`
+  const cookieValue = document.cookie.split('; ').find((cookie) => cookie.startsWith(cookiePrefix))
+
+  if (!cookieValue) {
+    return ''
+  }
+
+  return decodeURIComponent(cookieValue.slice(cookiePrefix.length))
 }
 
 const getRefreshDelayMs = (accessTokenExpiresAtMs: number) => {
@@ -76,6 +91,20 @@ export function AuthBootstrap() {
     }
 
     if (!accessToken) {
+      const e2eAccessToken = getCookieValue(E2E_ACCESS_TOKEN_COOKIE)
+      const e2eAccessTokenExpiresAtValue = getCookieValue(E2E_ACCESS_TOKEN_EXPIRES_AT_COOKIE)
+      const e2eAccessTokenExpiresAtMs = Number(e2eAccessTokenExpiresAtValue)
+
+      if (e2eAccessToken) {
+        setAccessToken(
+          e2eAccessToken,
+          Number.isFinite(e2eAccessTokenExpiresAtMs) ? e2eAccessTokenExpiresAtMs : 0,
+        )
+        return () => {
+          if (refreshTimer) clearTimeout(refreshTimer)
+        }
+      }
+
       void run()
       return () => {
         if (refreshTimer) clearTimeout(refreshTimer)
