@@ -1,12 +1,18 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:3001'
+const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
+const E2E_WEB_SERVER_COMMAND = 'pnpm dev'
+const E2E_WEB_SERVER_TIMEOUT_MS = 120_000
+const E2E_WORKER_COUNT = 1
+const E2E_STORAGE_STATE_PATH = 'playwright/.auth/e2e-user.json'
 
 // E2E_BASE_URL이 없으면 로컬 서버를 자동 실행
 const shouldStartServer = !process.env.E2E_BASE_URL
 
 export default defineConfig({
   testDir: './tests/e2e',
+  workers: E2E_WORKER_COUNT,
+  globalSetup: './tests/e2e/global-setup.ts',
 
   // ✅ 테스트 1개당 최대 실행 시간
   timeout: 60_000,
@@ -17,6 +23,7 @@ export default defineConfig({
   // ✅ 모든 테스트에 공통 적용되는 옵션
   use: {
     baseURL,
+    storageState: E2E_STORAGE_STATE_PATH,
 
     // ✅ 재시도 1회차에서 실패하면 트레이스를 남겨서 디버깅을 쉽게 함
     trace: 'on-first-retry',
@@ -38,9 +45,10 @@ export default defineConfig({
   // 로컬에서 E2E 실행 시 Playwright가 Next 서버를 자동 실행
   webServer: shouldStartServer
     ? {
-        command: 'pnpm dev -p 3001',
+        command: E2E_WEB_SERVER_COMMAND,
         url: baseURL,
         reuseExistingServer: !process.env.CI,
+        timeout: E2E_WEB_SERVER_TIMEOUT_MS,
       }
     : undefined,
 })
