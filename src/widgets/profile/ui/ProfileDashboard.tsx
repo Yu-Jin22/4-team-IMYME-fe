@@ -32,14 +32,13 @@ export function ProfileDashboard({
   const profile = useProfile()
   const { data: myProfile } = useMyProfileQuery(accessToken, { enabled: Boolean(accessToken) })
   useSyncMyProfile({ accessToken, myProfile })
+  const resolvedProfile = myProfile ?? profile
 
   const isMainPage = pathname === MAIN_PAGE_PATH
   const isMyPage = pathname === MY_PAGE_PATH
-  const isProfileReady = Boolean(profile.nickname || profile.profileImageUrl)
+  const isProfileReady = Boolean(resolvedProfile.nickname || resolvedProfile.profileImageUrl)
   const shouldDeferAvatarImage = deferAvatarImageUntilProfileReady && !myProfile
-  const avatarSrcForRender = shouldDeferAvatarImage
-    ? ''
-    : (myProfile?.profileImageUrl ?? profile.profileImageUrl)
+  const avatarSrcForRender = shouldDeferAvatarImage ? '' : resolvedProfile.profileImageUrl
 
   return (
     <div className="relative w-full">
@@ -69,13 +68,13 @@ export function ProfileDashboard({
               size={AVATAR_SIZE_PX}
             />
           </div>
-          <Nickname nickname={isProfileReady ? profile.nickname : FALLBACK_NICKNAME} />
+          <Nickname nickname={isProfileReady ? resolvedProfile.nickname : FALLBACK_NICKNAME} />
         </div>
 
         <StatCards
-          cardCount={isProfileReady ? profile.activeCardCount : FALLBACK_STAT_VALUE}
-          winCount={isProfileReady ? profile.winCount : FALLBACK_STAT_VALUE}
-          levelCount={isProfileReady ? profile.level : FALLBACK_STAT_VALUE}
+          cardCount={isProfileReady ? resolvedProfile.activeCardCount : FALLBACK_STAT_VALUE}
+          winCount={isProfileReady ? resolvedProfile.winCount : FALLBACK_STAT_VALUE}
+          levelCount={isProfileReady ? resolvedProfile.level : FALLBACK_STAT_VALUE}
         />
       </div>
     </div>
