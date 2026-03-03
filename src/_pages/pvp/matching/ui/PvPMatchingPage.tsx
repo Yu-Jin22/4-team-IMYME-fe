@@ -1,13 +1,14 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { PvPCategory } from '@/entities/pvp-card'
 import { useAccessToken } from '@/features/auth'
 import {
   getPvPMatchingUiState,
+  MATCHED_ROOM_STATUS,
   PVP_MATCHING_ACCESS_DENIED_MESSAGE,
   PVP_MATCHING_ERROR_MESSAGE,
   PVP_MATCHING_INVALID_ROOM_ID_MESSAGE,
@@ -57,10 +58,12 @@ export function PvPMatchingPage() {
     joinedRoomId,
     participantRoomId,
     shouldRedirectToRooms,
+    refetchRoomDetails,
   } = usePvPMatchingAccess({
     accessToken,
     roomId,
   })
+  const hasRefetchedMatchedRoomRef = useRef(false)
 
   // 매칭 소켓 구독 훅
   const {
@@ -84,6 +87,20 @@ export function PvPMatchingPage() {
 
   // 소켓 상태가 있으면 우선 사용하고, 없으면 서버 초기 상태를 현재 상태로 사용한다.
   const currentRoomStatus = liveRoomStatus ?? resolvedRoomDetails?.status ?? null
+
+  // ROOM_JOINED payload에는 guest 프로필 이미지가 없으므로,
+  // MATCHED 진입 시 방 상세를 다시 읽어 호스트 화면의 guest 프로필을 동기화한다.
+  useEffect(() => {
+    if (currentRoomStatus !== MATCHED_ROOM_STATUS) {
+      hasRefetchedMatchedRoomRef.current = false
+      return
+    }
+
+    if (hasRefetchedMatchedRoomRef.current) return
+
+    hasRefetchedMatchedRoomRef.current = true
+    void refetchRoomDetails()
+  }, [currentRoomStatus, refetchRoomDetails])
 
   // 준비 버튼 클릭 액션
   const { canStartPvPRecording, handleReadyButtonClick } = usePvPReadyAction({
