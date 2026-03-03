@@ -1,5 +1,6 @@
 // PvP 매칭 페이지에서 쓰는 방 상태 상수
 export const OPEN_ROOM_STATUS = 'OPEN'
+export const MATCHED_ROOM_STATUS = 'MATCHED'
 export const THINKING_ROOM_STATUS = 'THINKING'
 export const RECORDING_ROOM_STATUS = 'RECORDING'
 export const PROCESSING_ROOM_STATUS = 'PROCESSING'
