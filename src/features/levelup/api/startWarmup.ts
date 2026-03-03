@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 type StartWarmupPayload = {
   cardId: number
@@ -10,13 +10,12 @@ type StartWarmupResponse = {
   }
 }
 
-export async function startWarmup(accessToken: string, payload: StartWarmupPayload) {
+export async function startWarmup(payload: StartWarmupPayload) {
   try {
-    const response = await httpClient.post<StartWarmupResponse>('/learning/warmup', payload, {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
-    })
+    const response = await proxyApiClient.post<StartWarmupResponse>(
+      '/proxy-api/learning/warmup',
+      payload,
+    )
 
     return response.data
   } catch (error) {

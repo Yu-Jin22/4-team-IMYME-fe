@@ -11,23 +11,16 @@ const FAILED_REDIRECT_DELAY_MS = 3000
 const MAX_ATTEMPTS = 5
 
 type LevelUpFeedbackControllerDeps = {
-  accessToken: string | null
   createAttempt: (
-    accessToken: string,
     cardId: number,
     initialDurationSeconds: number,
   ) => Promise<{ ok: boolean; data?: { attemptId?: number; attemptNo?: number } }>
-  deleteAttempt: (
-    accessToken: string,
-    cardId: number,
-    attemptId: number,
-  ) => Promise<{ ok: boolean }>
+  deleteAttempt: (cardId: number, attemptId: number) => Promise<{ ok: boolean }>
   initialAttemptDurationSeconds: number
   onIncreaseActiveCardCount: () => void
 }
 
 export function useLevelUpFeedbackController({
-  accessToken,
   createAttempt,
   deleteAttempt,
   initialAttemptDurationSeconds,
@@ -39,14 +32,14 @@ export function useLevelUpFeedbackController({
   const [isCreatingAttempt, setIsCreatingAttempt] = useState(false)
   const cardId = Number(searchParams.get('cardId') ?? '')
   const attemptId = Number(searchParams.get('attemptId') ?? '')
-  const { data } = useCardDetails(accessToken ?? '', cardId)
+  const { data } = useCardDetails(cardId)
 
   const deleteAttemptMutation = useMutation({
     mutationFn: async () => {
-      if (!accessToken || !cardId || !attemptId) {
+      if (!cardId || !attemptId) {
         throw new Error('missing_params')
       }
-      const result = await deleteAttempt(accessToken, cardId, attemptId)
+      const result = await deleteAttempt(cardId, attemptId)
       if (!result.ok) {
         throw new Error('delete_failed')
       }
@@ -72,7 +65,6 @@ export function useLevelUpFeedbackController({
   }, [router])
 
   const { status, processingStep, feedbackData } = useFeedbackPolling({
-    accessToken,
     cardId,
     attemptId,
     onTimeout: handleTimeout,
@@ -92,13 +84,8 @@ export function useLevelUpFeedbackController({
       toast.error('카드 정보를 찾을 수 없습니다.')
       return
     }
-    if (!accessToken) {
-      toast.error('로그인이 필요합니다.')
-      return
-    }
-
     setIsCreatingAttempt(true)
-    const response = await createAttempt(accessToken, cardId, initialAttemptDurationSeconds)
+    const response = await createAttempt(cardId, initialAttemptDurationSeconds)
     setIsCreatingAttempt(false)
     if (!response.ok) {
       toast.error('학습 시작을 준비하지 못했습니다. 다시 시도해주세요.')

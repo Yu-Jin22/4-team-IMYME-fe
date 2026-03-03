@@ -8,22 +8,18 @@ type UsePvPCardDetailsOptions = {
   enabled?: boolean
 }
 
-export function usePvPCardDetails(
-  accessToken: string | null,
-  roomId: number | undefined,
-  options?: UsePvPCardDetailsOptions,
-) {
+export function usePvPCardDetails(roomId: number | undefined, options?: UsePvPCardDetailsOptions) {
   const enabled = options?.enabled ?? true
 
   return useQuery({
     queryKey: ['pvpCardDetails', roomId],
-    enabled: Boolean(accessToken) && Boolean(roomId) && enabled,
+    enabled: Boolean(roomId) && enabled,
     queryFn: async () => {
-      if (!accessToken || !roomId) {
+      if (!roomId) {
         return null
       }
 
-      return getPvPCardDetails(accessToken, roomId)
+      return getPvPCardDetails(roomId)
     },
   })
 }

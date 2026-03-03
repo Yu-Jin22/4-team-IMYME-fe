@@ -5,7 +5,6 @@ import { useCategoryList } from '../../filtering/model/useCategoryList'
 import type { CategoryItemType } from '@/entities/category'
 
 type CategorySelectListProps = {
-  accessToken: string
   selectedCategoryId: number | null
   onCategorySelectId: (category: CategoryItemType) => void
   onClearKeyword?: () => void
@@ -13,19 +12,14 @@ type CategorySelectListProps = {
 }
 
 export function CategorySelectList({
-  accessToken,
   selectedCategoryId,
   onCategorySelectId,
   onClearKeyword,
   variant = 'default',
 }: CategorySelectListProps) {
-  const { data, isLoading, error } = useCategoryList(accessToken)
+  const { data, isLoading, error } = useCategoryList()
   const categories: CategoryItemType[] = data ?? []
   const buttonHeightClassName = variant === 'compact' ? 'h-20' : 'h-40'
-
-  if (!accessToken) {
-    return <p>카테고리를 불러오려면 로그인이 필요합니다.</p>
-  }
 
   if (isLoading) {
     return <p>카테고리를 불러오는 중입니다.</p>

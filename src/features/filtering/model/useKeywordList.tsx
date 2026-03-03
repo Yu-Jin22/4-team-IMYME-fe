@@ -8,13 +8,12 @@ import type { KeywordItemType } from '@/entities/keyword'
 
 type UseKeywordListOptions = {
   categoryId: number | null
-  accessToken: string
 }
 
-export function useKeywordList({ categoryId, accessToken }: UseKeywordListOptions) {
+export function useKeywordList({ categoryId }: UseKeywordListOptions) {
   return useQuery<KeywordItemType[]>({
     queryKey: ['keywords', categoryId],
-    queryFn: () => getKeywords(accessToken, categoryId),
-    enabled: Boolean(accessToken) && categoryId !== null,
+    queryFn: () => getKeywords(categoryId),
+    enabled: categoryId !== null,
   })
 }

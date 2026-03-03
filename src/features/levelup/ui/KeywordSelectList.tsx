@@ -5,14 +5,12 @@ import { useKeywordList } from '../../filtering/model/useKeywordList'
 import type { KeywordItemType } from '@/entities/keyword'
 
 type KeywordSelectListProps = {
-  accessToken: string
   categoryId: number | null
   selectedKeywordId: number | null
   onKeywordSelect: (keyword: KeywordItemType) => void
 }
 
 export function KeywordSelectList({
-  accessToken,
   categoryId,
   selectedKeywordId,
   onKeywordSelect,
@@ -23,7 +21,6 @@ export function KeywordSelectList({
     isError,
   } = useKeywordList({
     categoryId,
-    accessToken,
   })
 
   if (!categoryId) {

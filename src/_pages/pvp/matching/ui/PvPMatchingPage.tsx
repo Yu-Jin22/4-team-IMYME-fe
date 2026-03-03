@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { PvPCategory } from '@/entities/pvp-card'
-import { useAccessToken } from '@/features/auth'
+import { useEnsuredAccessToken } from '@/features/auth'
 import {
   getPvPMatchingUiState,
   MATCHED_ROOM_STATUS,
@@ -31,7 +31,7 @@ import { AlertModal, ModeHeader, StatusMessage } from '@/shared'
 export function PvPMatchingPage() {
   const params = useParams<{ id: string }>()
   const roomId = Number(params.id)
-  const accessToken = useAccessToken()
+  const socketAccessToken = useEnsuredAccessToken(Boolean(roomId))
 
   // 내가 준비 버튼을 이미 눌렀는지 여부
   const [isReadySubmitted, setIsReadySubmitted] = useState(false)
@@ -60,7 +60,6 @@ export function PvPMatchingPage() {
     shouldRedirectToRooms,
     refetchRoomDetails,
   } = usePvPMatchingAccess({
-    accessToken,
     roomId,
   })
   const hasRefetchedMatchedRoomRef = useRef(false)
@@ -73,7 +72,7 @@ export function PvPMatchingPage() {
     setLiveRoomStatus,
     cleanupMatchingConnection,
   } = usePvPMatchingSocket({
-    accessToken,
+    accessToken: socketAccessToken,
     joinedRoomId,
     // 메시지 발신자 판별용 현재 유저 id
     myUserId,
@@ -104,7 +103,6 @@ export function PvPMatchingPage() {
 
   // 준비 버튼 클릭 액션
   const { canStartPvPRecording, handleReadyButtonClick } = usePvPReadyAction({
-    accessToken,
     roomId: joinedRoomId,
     roomStatus: currentRoomStatus,
     isReadySubmitted,
@@ -115,7 +113,6 @@ export function PvPMatchingPage() {
   // 페이지 이탈(뒤로가기/종료) 가드 훅
   const { isExitAlertOpen, handleBack, handleExitConfirm, handleExitCancel, setIsExitAlertOpen } =
     usePvPMatchingExitGuard({
-      accessToken,
       joinedRoomId: participantRoomId,
       cleanupMatchingConnection,
     })
@@ -136,7 +133,6 @@ export function PvPMatchingPage() {
     markSubmissionCompleted,
     handlePvPMicClick,
   } = usePvPRecordController({
-    accessToken,
     roomId: joinedRoomId,
     roomStatus: currentRoomStatus,
   })

@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 type CreateCardPayload = {
   categoryId: number
@@ -19,13 +19,9 @@ type CreateCardResponse = {
   }
 }
 
-export async function createCard(accessToken: string, payload: CreateCardPayload) {
+export async function createCard(payload: CreateCardPayload) {
   try {
-    const response = await httpClient.post<CreateCardResponse>('/cards', payload, {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
-    })
+    const response = await proxyApiClient.post<CreateCardResponse>('/proxy-api/cards', payload)
 
     return response.data
   } catch (error) {

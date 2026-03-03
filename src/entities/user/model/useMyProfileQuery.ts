@@ -16,23 +16,15 @@ type UseMyProfileQueryResult = {
   isError: boolean
 }
 
-export function useMyProfileQuery(
-  accessToken: string | null,
-  options?: UseMyProfileQueryOptions,
-): UseMyProfileQueryResult {
+export function useMyProfileQuery(options?: UseMyProfileQueryOptions): UseMyProfileQueryResult {
   // 외부에서 쿼리 활성/비활성 제어
   const enabled = options?.enabled ?? true
 
-  // ✅ 내 프로필 조회 쿼리
   const query = useQuery({
     queryKey: ['myProfile'],
-    // accessToken이 있을 때만 실행 + 외부 enabled 반영
-    enabled: Boolean(accessToken) && enabled,
+    enabled,
     queryFn: async () => {
-      if (!accessToken) {
-        return undefined
-      }
-      const result = await getMyProfile(accessToken)
+      const result = await getMyProfile()
       if (!result.ok) {
         throw new Error(result.reason)
       }

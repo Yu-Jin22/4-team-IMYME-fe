@@ -4,7 +4,6 @@ import { useState } from 'react'
 
 import { CategoryItemType } from '@/entities/category'
 import { KeywordItemType } from '@/entities/keyword'
-import { useAccessToken } from '@/features/auth'
 import {
   CategoryList,
   KeywordList,
@@ -33,12 +32,11 @@ type FilteringTabProps = {
 }
 
 export function FilteringTab({ variant = 'keyword', onApply, onClose }: FilteringTabProps) {
-  const accessToken = useAccessToken()
   const {
     data: categoryData = [],
     isLoading: categoryLoading,
     error: categoryError,
-  } = useCategoryList(accessToken)
+  } = useCategoryList()
   const [selectedCategory, setSelectedCategory] = useState<CategoryItemType | null>(null)
   const [selectedKeyword, setSelectedKeyword] = useState<KeywordItemType | null>(null)
   const {
@@ -47,7 +45,6 @@ export function FilteringTab({ variant = 'keyword', onApply, onClose }: Filterin
     error: keywordError,
   } = useKeywordList({
     categoryId: selectedCategory?.id ?? null,
-    accessToken,
   })
   const isCategoryOnly = variant === 'category'
 

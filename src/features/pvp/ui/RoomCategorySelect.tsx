@@ -4,7 +4,6 @@ import { CategoryItemType } from '@/entities/category'
 import { CategorySelectList } from '@/features/levelup'
 
 type RoomCategorySelectProps = {
-  accessToken: string
   selectedCategory: CategoryItemType | null
   onCategorySelect: (category: CategoryItemType) => void
 }
@@ -16,7 +15,6 @@ const LIST_WRAPPER_CLASSNAME =
   'bg-secondary mx-4 mt-4 flex max-h-[65vh] min-w-87.5 flex-col items-center justify-center overflow-hidden rounded-2xl p-4 overflow-x-auto'
 
 export function RoomCategorySelect({
-  accessToken,
   selectedCategory,
   onCategorySelect,
 }: RoomCategorySelectProps) {
@@ -28,7 +26,6 @@ export function RoomCategorySelect({
       </div>
       <div className={LIST_WRAPPER_CLASSNAME}>
         <CategorySelectList
-          accessToken={accessToken}
           selectedCategoryId={selectedCategory ? selectedCategory.id : null}
           onCategorySelectId={onCategorySelect}
           variant="compact"

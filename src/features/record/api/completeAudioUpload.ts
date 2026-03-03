@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 type CompleteAudioUploadResponse = {
   data?: {
@@ -13,21 +13,15 @@ type CompleteAudioUploadResult =
   | { ok: false; reason: string }
 
 export async function completeAudioUpload(
-  accessToken: string,
   cardId: number,
   attemptId: number,
   objectKey: string,
   durationSeconds: number,
 ): Promise<CompleteAudioUploadResult> {
   try {
-    const response = await httpClient.put<CompleteAudioUploadResponse>(
-      `/cards/${cardId}/attempts/${attemptId}/upload-complete`,
+    const response = await proxyApiClient.put<CompleteAudioUploadResponse>(
+      `/proxy-api/cards/${cardId}/attempts/${attemptId}/upload-complete`,
       { objectKey, durationSeconds },
-      {
-        headers: {
-          Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-        },
-      },
     )
 
     return { ok: true, data: response.data?.data }

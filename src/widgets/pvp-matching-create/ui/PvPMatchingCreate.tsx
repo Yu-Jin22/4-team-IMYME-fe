@@ -1,6 +1,5 @@
 'use client'
 
-import { useAccessToken } from '@/features/auth'
 import {
   RoomCategorySelect,
   RoomCreateButton,
@@ -19,8 +18,6 @@ export function PvPMatchingCreate({
   onCreatingRoomChange,
   onBackHandlerChange,
 }: PvPMatchingCreateProps) {
-  const accessToken = useAccessToken()
-
   // 생성 플로우의 상태/액션을 훅에서 가져온다.
   // (카테고리 단계 -> 방 이름 단계 -> create API -> matching 페이지 이동)
   const {
@@ -51,7 +48,6 @@ export function PvPMatchingCreate({
           - 방 이름 단계: 방 이름 입력 UI */}
       {isCategoryStep ? (
         <RoomCategorySelect
-          accessToken={accessToken}
           selectedCategory={selectedCategory}
           onCategorySelect={handleCategorySelect}
         />

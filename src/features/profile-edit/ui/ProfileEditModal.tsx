@@ -7,7 +7,6 @@ import {
   getMyProfile,
   useMyProfileQuery,
 } from '@/entities/user'
-import { useAccessToken } from '@/features/auth'
 import {
   ProfileImageInput,
   NicknameInput,
@@ -54,24 +53,21 @@ export function ProfileEditModal({ open, onOpenChange }: ProfileEditModalProps) 
     errorMessage: nicknameErrorMessage,
   } = useNicknameForm()
 
-  const accessToken = useAccessToken()
   const profile = useProfile()
   const setProfile = useSetProfile()
   // 서버 기준 최신 프로필(만료된 presigned URL 재발급 반영 가능)
-  const { data: myProfile } = useMyProfileQuery(accessToken, {
-    enabled: open && Boolean(accessToken),
+  const { data: myProfile } = useMyProfileQuery({
+    enabled: open,
   })
 
   const handleProfileEdit = async () => {
-    if (!accessToken) return
-
     const trimmedNickname = nickname.trim()
     const nextNickname = trimmedNickname.length > 0 ? trimmedNickname : null
     // let profileImageUrl: string | null = null
     let profileImageKey: string | null = null
 
     if (file) {
-      const presigned = await getProfileImageUrl(accessToken, file.type)
+      const presigned = await getProfileImageUrl(file.type)
       if (!presigned.ok) return
 
       const uploadResult = await uploadProfileImage(presigned.uploadUrl, file)
@@ -83,14 +79,14 @@ export function ProfileEditModal({ open, onOpenChange }: ProfileEditModalProps) 
 
     if (!nextNickname && !profileImageKey) return
 
-    const result = await updateProfile(accessToken, {
+    const result = await updateProfile({
       nickname: nextNickname,
       profileImageKey,
     })
 
     if (!result.ok || !result.data) return
 
-    const myProfileResult = await getMyProfile(accessToken)
+    const myProfileResult = await getMyProfile()
     if (!myProfileResult.ok) {
       setProfile({
         id: result.data.id ?? profile.id,

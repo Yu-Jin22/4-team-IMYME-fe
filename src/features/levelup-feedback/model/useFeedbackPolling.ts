@@ -15,7 +15,6 @@ const FEEDBACK_TIMEOUT_MS = 5 * 60 * 1000
 const DEFAULT_FEEDBACK_STATUS: FeedbackStatus = 'PROCESSING'
 
 type UseFeedbackPollingOptions = {
-  accessToken: string | null
   cardId?: number
   attemptId?: number
   onTimeout?: () => void | Promise<void>
@@ -39,7 +38,6 @@ const isProcessingStep = (step?: string | null): step is FeedbackProcessingStep 
   Boolean(step) && PROCESSING_STEPS.includes(step as FeedbackProcessingStep)
 
 export function useFeedbackPolling({
-  accessToken,
   cardId,
   attemptId,
   onTimeout,
@@ -52,7 +50,7 @@ export function useFeedbackPolling({
   const hasCompletedFeedback = status === 'COMPLETED' && feedbackData.length > 0
 
   useEffect(() => {
-    if (!accessToken || !cardId || !attemptId || hasCompletedFeedback) return
+    if (!cardId || !attemptId || hasCompletedFeedback) return
 
     let isActive = true
     let intervalId: number | null = null
@@ -70,7 +68,7 @@ export function useFeedbackPolling({
 
     const pollAttemptDetails = async () => {
       if (!isActive) return
-      const details = await getAttemptDetails(accessToken, cardId, attemptId)
+      const details = await getAttemptDetails(cardId, attemptId)
       if (!details?.status) return
       if (isValidStatus(details.status)) {
         setStatus(details.status)
@@ -113,7 +111,7 @@ export function useFeedbackPolling({
     return () => {
       stopPolling()
     }
-  }, [accessToken, attemptId, cardId, hasCompletedFeedback, onFailed, onTimeout])
+  }, [attemptId, cardId, hasCompletedFeedback, onFailed, onTimeout])
 
   return { status, processingStep, feedbackData }
 }

@@ -10,7 +10,6 @@ import { ModeHeader } from '@/shared'
 
 export function LevelUpStartPage() {
   const {
-    accessToken,
     selectedCategory,
     selectedKeyword,
     isNameDialogOpen,
@@ -38,14 +37,12 @@ export function LevelUpStartPage() {
       <div className="bg-secondary mx-4 mt-4 flex max-h-[80vh] max-w-350 flex-col items-center justify-center overflow-hidden rounded-2xl p-4">
         {hasSelectedCategory ? (
           <KeywordSelectList
-            accessToken={accessToken}
             categoryId={selectedCategory ? selectedCategory.id : null}
             selectedKeywordId={selectedKeyword ? selectedKeyword.id : null}
             onKeywordSelect={handleKeywordSelect}
           />
         ) : (
           <CategorySelectList
-            accessToken={accessToken}
             selectedCategoryId={selectedCategory ? selectedCategory.id : null}
             onCategorySelectId={setSelectedCategory}
             onClearKeyword={clearKeyword}

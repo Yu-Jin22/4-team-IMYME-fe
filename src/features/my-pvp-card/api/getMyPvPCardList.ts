@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 export type MyPvPCardListRole = 'HOST' | 'GUEST'
 
@@ -69,15 +69,13 @@ export type GetMyPvPCardListResult =
   | { ok: true; data: MyPvPHistoryListData }
   | { ok: false; reason: string }
 
+const MY_PVP_HISTORY_PROXY_PATH = '/proxy-api/pvp/histories'
+
 export async function getMyPvPCardList(
-  accessToken: string,
   params: GetMyPvPCardListParams = {},
 ): Promise<GetMyPvPCardListResult> {
   try {
-    const response = await httpClient.get<GetMyPvPCardListResponse>('/pvp/histories', {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
+    const response = await proxyApiClient.get<GetMyPvPCardListResponse>(MY_PVP_HISTORY_PROXY_PATH, {
       params: {
         ...(params.categoryId !== undefined ? { categoryId: params.categoryId } : {}),
         ...(params.keywordId !== undefined ? { keywordId: params.keywordId } : {}),
@@ -87,8 +85,8 @@ export async function getMyPvPCardList(
         ...(params.size !== undefined ? { size: params.size } : {}),
       },
     })
-
-    const historyListData = response.data?.data
+    const payload = response.data
+    const historyListData = payload.data
     if (!historyListData) {
       return { ok: false, reason: 'empty_histories' }
     }

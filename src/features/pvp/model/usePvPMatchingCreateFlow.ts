@@ -9,8 +9,6 @@ import { toast } from 'sonner'
 
 // 방 생성 API
 import { createPvPRoom } from '@/entities/room'
-// access token 읽기
-import { useAccessToken } from '@/features/auth'
 
 import type { CategoryItemType } from '@/entities/category'
 
@@ -65,7 +63,6 @@ export function usePvPMatchingCreateFlow({
   const [isCreatingRoom, setIsCreatingRoom] = useState(false)
 
   const router = useRouter()
-  const accessToken = useAccessToken()
 
   const hasSelectedCategory = Boolean(selectedCategory)
   const isCategoryStep = !isNextClicked
@@ -146,7 +143,7 @@ export function usePvPMatchingCreateFlow({
       return
     }
 
-    if (!accessToken || !selectedCategory) return
+    if (!selectedCategory) return
 
     // 방 이름 정규화
     if (isRoomNameEmpty || isRoomNameTooShort || isRoomNameTooLong) return
@@ -157,7 +154,7 @@ export function usePvPMatchingCreateFlow({
     // 요청 시작(버튼/뒤로가기 비활성화)
     setIsCreatingRoom(true)
 
-    const createdRoom = await createPvPRoom(accessToken, {
+    const createdRoom = await createPvPRoom({
       categoryId: selectedCategory.id,
       roomName: normalizedRoomName,
     })
