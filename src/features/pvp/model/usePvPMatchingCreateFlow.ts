@@ -18,6 +18,8 @@ import type { CategoryItemType } from '@/entities/category'
 const CREATE_ROOM_ERROR_MESSAGE = '방을 만들던 중 오류가 발생하였습니다.'
 // 생성 성공 후 이동할 경로 prefix
 const MATCHING_PATH_PREFIX = '/pvp/matching'
+// 방 이름 최대 길이
+const MAX_ROOM_NAME_LENGTH = 10
 
 // 방 이름 앞/뒤 공백 제거 유틸(중간 공백은 유지)
 const normalizeRoomNameBoundarySpaces = (value: string) => value.trim()
@@ -66,13 +68,16 @@ export function usePvPMatchingCreateFlow({
 
   const hasSelectedCategory = Boolean(selectedCategory)
   const isCategoryStep = !isNextClicked
+  const normalizedRoomName = normalizeRoomNameBoundarySpaces(roomName)
+  const isRoomNameEmpty = normalizedRoomName.length === 0
+  const isRoomNameTooLong = normalizedRoomName.length > MAX_ROOM_NAME_LENGTH
 
   const createButtonVariant = isCategoryStep ? 'category' : 'create'
 
   // 단계별 유효성 검증:
   // - 1단계: 카테고리 필수
-  // - 2단계: trim 기준 방 이름 필수
-  const isFormInvalid = isCategoryStep ? !hasSelectedCategory : roomName.trim().length === 0
+  // - 2단계: trim 기준 방 이름 필수 + 10자 이하
+  const isFormInvalid = isCategoryStep ? !hasSelectedCategory : isRoomNameEmpty || isRoomNameTooLong
   // 버튼 비활성 최종 조건
   const isCreateButtonDisabled = isFormInvalid || isCreatingRoom
 
@@ -106,7 +111,7 @@ export function usePvPMatchingCreateFlow({
     }
 
     // 카테고리는 선택했지만 방 이름이 비어 있으면 카테고리 선택 해제
-    if (roomName.trim().length === 0) {
+    if (isRoomNameEmpty) {
       setSelectedCategory(null)
       setIsNextClicked(null)
       return
@@ -116,7 +121,7 @@ export function usePvPMatchingCreateFlow({
     setRoomName('')
     setSelectedCategory(null)
     setIsNextClicked(null)
-  }, [isCreatingRoom, roomName, router, selectedCategory])
+  }, [isCreatingRoom, isRoomNameEmpty, router, selectedCategory])
 
   // 생성 진행 상태를 부모 페이지와 동기화(헤더 back 비활성화에 사용)
   useEffect(() => {
@@ -139,8 +144,7 @@ export function usePvPMatchingCreateFlow({
     if (!accessToken || !selectedCategory) return
 
     // 방 이름 정규화
-    const normalizedRoomName = normalizeRoomNameBoundarySpaces(roomName)
-    if (normalizedRoomName.length === 0) return
+    if (isRoomNameEmpty || isRoomNameTooLong) return
 
     // 생성 요청 중복 방지
     if (isCreatingRoom) return
