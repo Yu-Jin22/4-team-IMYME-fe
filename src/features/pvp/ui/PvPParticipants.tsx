@@ -13,7 +13,7 @@ type PvPParticipantsProps = {
 }
 
 const WRAPPER_CLASSNAME = 'flex w-full items-center justify-center gap-20'
-const DEFAULT_VS_LABEL = 'VS.'
+const DEFAULT_VS_LABEL = 'VS'
 
 export function PvPParticipants({
   leftProfile,

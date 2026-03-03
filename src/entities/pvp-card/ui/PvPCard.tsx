@@ -30,12 +30,14 @@ const CARD_CLASSNAME =
   'border-secondary bg-background flex h-20 max-h-20 w-80 flex-col items-center justify-center gap-2 rounded-xl border'
 const ROW_CLASSNAME = 'flex w-full items-center px-4'
 const RESULT_CLASSNAME =
-  'bg-secondary text-primary ml-auto flex h-5 min-w-16 items-center justify-center rounded-2xl px-2 text-sm'
+  'ml-auto flex h-5 min-w-16 items-center justify-center rounded-2xl px-2 text-sm'
 const CATEGORY_CLASSNAME =
   'bg-secondary text-primary ml-auto flex h-5 min-w-15 items-center justify-center rounded-2xl px-2 text-xs'
 const KEYWORD_CLASSNAME =
   'bg-secondary text-primary ml-2 flex h-5 min-w-15 items-center justify-center rounded-2xl px-2 text-xs'
 const ARROW_SIZE = 20
+const WIN_RESULT_TONE_CLASSNAME = 'bg-secondary text-primary'
+const LOSE_RESULT_TONE_CLASSNAME = 'bg-red-100 text-red-600'
 
 const RESULT_LABEL_BY_VARIANT: Record<PvPResultVariant, string> = {
   win: 'Win',
@@ -59,6 +61,8 @@ export function PvPCard({
   onDelete,
 }: PvPCardProps) {
   const resultLabel = RESULT_LABEL_BY_VARIANT[resultVariant]
+  const resultToneClassName =
+    resultVariant === 'lose' ? LOSE_RESULT_TONE_CLASSNAME : WIN_RESULT_TONE_CLASSNAME
   const shortenedCategoryName = shortenTagLabel(categoryName)
   const shortenedKeywordName = shortenTagLabel(keywordName)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
@@ -199,7 +203,7 @@ export function PvPCard({
       >
         <div className={ROW_CLASSNAME}>
           <p className="font-semibold">{title}</p>
-          <div className={RESULT_CLASSNAME}>{resultLabel}</div>
+          <div className={`${RESULT_CLASSNAME} ${resultToneClassName}`}>{resultLabel}</div>
         </div>
         <div className={ROW_CLASSNAME}>
           <p className="text-sm">VS. {opponentName}</p>
