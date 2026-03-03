@@ -45,6 +45,7 @@ export function RoomNameSetting({
             onChange={(event) => onRoomNameChange(event.target.value)}
             onBlur={onRoomNameBlur}
             disabled={disabled}
+            maxLength={10}
           />
           <FieldDescription>방 이름은 1자 이상 10자 이하로 입력해주세요.</FieldDescription>
           <FieldDescription>비방/욕설이 담긴 단어는 포함하실 수 없습니다.</FieldDescription>
