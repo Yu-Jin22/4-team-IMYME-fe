@@ -1,3 +1,5 @@
+import axios from 'axios'
+
 import { httpClient } from '@/shared/api'
 
 type PvPRoomStatus =
@@ -58,10 +60,33 @@ type CreatePvPRoomResponse = {
   timestamp?: string
 }
 
+type CreatePvPRoomErrorResponse = {
+  error?: string
+  message?: string
+  details?: {
+    reason?: string
+    field?: string
+    rejectedValue?: string
+  }
+  timestamp?: string
+  path?: string
+}
+
+export type CreatePvPRoomResult =
+  | { ok: true; data: PvPRoomDetails }
+  | {
+      ok: false
+      error: 'VALIDATION_FAILED'
+      message: string
+      details?: CreatePvPRoomErrorResponse['details']
+    }
+  | { ok: false; error: 'FORBIDDEN_WORD'; message: string }
+  | { ok: false; error: 'UNKNOWN'; message: string }
+
 export async function createPvPRoom(
   accessToken: string,
   payload: CreatePvPRoomPayload,
-): Promise<PvPRoomDetails | null> {
+): Promise<CreatePvPRoomResult> {
   try {
     const response = await httpClient.post<CreatePvPRoomResponse>('/pvp/rooms', payload, {
       headers: {
@@ -69,9 +94,37 @@ export async function createPvPRoom(
       },
     })
 
-    return response.data?.data ?? null
+    const roomDetails = response.data?.data
+    if (!roomDetails) {
+      return { ok: false, error: 'UNKNOWN', message: 'empty_response' }
+    }
+
+    return { ok: true, data: roomDetails }
   } catch (error) {
+    if (axios.isAxiosError<CreatePvPRoomErrorResponse>(error)) {
+      const responseError = error.response?.data
+      const errorCode = responseError?.error
+      const errorMessage = responseError?.message ?? 'request_failed'
+
+      if (errorCode === 'VALIDATION_FAILED') {
+        return {
+          ok: false,
+          error: 'VALIDATION_FAILED',
+          message: errorMessage,
+          details: responseError?.details,
+        }
+      }
+
+      if (errorCode === 'FORBIDDEN_WORD') {
+        return {
+          ok: false,
+          error: 'FORBIDDEN_WORD',
+          message: errorMessage,
+        }
+      }
+    }
+
     console.error('Failed to create pvp room', error)
-    return null
+    return { ok: false, error: 'UNKNOWN', message: 'request_failed' }
   }
 }

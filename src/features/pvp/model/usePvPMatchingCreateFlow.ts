@@ -18,7 +18,8 @@ import type { CategoryItemType } from '@/entities/category'
 const CREATE_ROOM_ERROR_MESSAGE = '방을 만들던 중 오류가 발생하였습니다.'
 // 생성 성공 후 이동할 경로 prefix
 const MATCHING_PATH_PREFIX = '/pvp/matching'
-// 방 이름 최대 길이
+// 방 이름 최소/최대 길이
+const MIN_ROOM_NAME_LENGTH = 2
 const MAX_ROOM_NAME_LENGTH = 10
 
 // 방 이름 앞/뒤 공백 제거 유틸(중간 공백은 유지)
@@ -70,14 +71,18 @@ export function usePvPMatchingCreateFlow({
   const isCategoryStep = !isNextClicked
   const normalizedRoomName = normalizeRoomNameBoundarySpaces(roomName)
   const isRoomNameEmpty = normalizedRoomName.length === 0
+  const isRoomNameTooShort =
+    normalizedRoomName.length > 0 && normalizedRoomName.length < MIN_ROOM_NAME_LENGTH
   const isRoomNameTooLong = normalizedRoomName.length > MAX_ROOM_NAME_LENGTH
 
   const createButtonVariant = isCategoryStep ? 'category' : 'create'
 
   // 단계별 유효성 검증:
   // - 1단계: 카테고리 필수
-  // - 2단계: trim 기준 방 이름 필수 + 10자 이하
-  const isFormInvalid = isCategoryStep ? !hasSelectedCategory : isRoomNameEmpty || isRoomNameTooLong
+  // - 2단계: trim 기준 방 이름 필수 + 2~10자
+  const isFormInvalid = isCategoryStep
+    ? !hasSelectedCategory
+    : isRoomNameEmpty || isRoomNameTooShort || isRoomNameTooLong
   // 버튼 비활성 최종 조건
   const isCreateButtonDisabled = isFormInvalid || isCreatingRoom
 
@@ -144,7 +149,7 @@ export function usePvPMatchingCreateFlow({
     if (!accessToken || !selectedCategory) return
 
     // 방 이름 정규화
-    if (isRoomNameEmpty || isRoomNameTooLong) return
+    if (isRoomNameEmpty || isRoomNameTooShort || isRoomNameTooLong) return
 
     // 생성 요청 중복 방지
     if (isCreatingRoom) return
@@ -157,14 +162,28 @@ export function usePvPMatchingCreateFlow({
       roomName: normalizedRoomName,
     })
 
-    if (!createdRoom) {
+    if (!createdRoom.ok) {
+      if (createdRoom.error === 'FORBIDDEN_WORD') {
+        toast.error(createdRoom.message)
+        setRoomName('')
+        setIsCreatingRoom(false)
+        return
+      }
+
+      if (createdRoom.error === 'VALIDATION_FAILED') {
+        toast.error(createdRoom.details?.reason ?? createdRoom.message)
+        setRoomName('')
+        setIsCreatingRoom(false)
+        return
+      }
+
       toast.error(CREATE_ROOM_ERROR_MESSAGE)
       setIsCreatingRoom(false)
       return
     }
 
     // 생성 성공: 매칭 페이지로 즉시 이동
-    router.replace(`${MATCHING_PATH_PREFIX}/${createdRoom.room.id}`)
+    router.replace(`${MATCHING_PATH_PREFIX}/${createdRoom.data.room.id}`)
   }
 
   return {
