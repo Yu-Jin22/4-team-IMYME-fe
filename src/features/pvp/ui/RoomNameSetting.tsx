@@ -16,6 +16,7 @@ const HEADER_TEXT_CLASSNAME = 'mr-auto ml-10 text-base'
 const FIELD_WRAPPER_CLASSNAME =
   'mt-2 flex h-full w-full flex-1 flex-col items-center justify-center'
 const FIELD_CLASSNAME = 'w-87.5 max-w-87.5'
+const ROOM_NAME_MAX_LENGTH = 10
 
 export function RoomNameSetting({
   selectedCategoryName,
@@ -45,9 +46,9 @@ export function RoomNameSetting({
             onChange={(event) => onRoomNameChange(event.target.value)}
             onBlur={onRoomNameBlur}
             disabled={disabled}
-            maxLength={10}
+            maxLength={ROOM_NAME_MAX_LENGTH}
           />
-          <FieldDescription>방 이름은 1자 이상 10자 이하로 입력해주세요.</FieldDescription>
+          <FieldDescription>방 이름은 2자 이상 10자 이하로 입력해주세요.</FieldDescription>
           <FieldDescription>비방/욕설이 담긴 단어는 포함하실 수 없습니다.</FieldDescription>
         </Field>
       </div>
