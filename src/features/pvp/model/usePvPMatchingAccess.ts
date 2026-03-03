@@ -35,6 +35,8 @@ type UsePvPMatchingAccessResult = {
   participantRoomId: number | null
   // join 실패/접근 거부 시 3초 후 목록으로 보내는 트리거
   shouldRedirectToRooms: boolean
+  // 실시간 상태가 바뀐 뒤 guest/keyword 등 최신 방 정보를 다시 읽어온다.
+  refetchRoomDetails: () => Promise<unknown>
 }
 
 export function usePvPMatchingAccess({
@@ -132,5 +134,6 @@ export function usePvPMatchingAccess({
     joinedRoomId,
     participantRoomId,
     shouldRedirectToRooms,
+    refetchRoomDetails: roomDetailsQuery.refetch,
   }
 }

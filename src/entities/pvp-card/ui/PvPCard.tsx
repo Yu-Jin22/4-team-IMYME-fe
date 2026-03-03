@@ -22,6 +22,7 @@ type PvPCardProps = {
 
 const REVEAL_PX = 50
 const DRAG_THRESHOLD_PX = 6
+const PVP_CARD_TAG_MAX_LENGTH = 6
 
 const WRAPPER_CLASSNAME = 'relative w-80 self-center overflow-visible'
 const BACK_CLASSNAME = 'absolute right-0 top-0 bottom-0 flex items-center justify-center'
@@ -41,6 +42,11 @@ const RESULT_LABEL_BY_VARIANT: Record<PvPResultVariant, string> = {
   lose: 'Lose',
 }
 
+const shortenTagLabel = (value: string) => {
+  if (value.length <= PVP_CARD_TAG_MAX_LENGTH) return value
+  return `${value.slice(0, PVP_CARD_TAG_MAX_LENGTH)}...`
+}
+
 export function PvPCard({
   historyId,
   accessToken,
@@ -53,6 +59,8 @@ export function PvPCard({
   onDelete,
 }: PvPCardProps) {
   const resultLabel = RESULT_LABEL_BY_VARIANT[resultVariant]
+  const shortenedCategoryName = shortenTagLabel(categoryName)
+  const shortenedKeywordName = shortenTagLabel(keywordName)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
 
   const [x, setX] = useState(0)
@@ -195,8 +203,8 @@ export function PvPCard({
         </div>
         <div className={ROW_CLASSNAME}>
           <p className="text-sm">VS. {opponentName}</p>
-          <div className={CATEGORY_CLASSNAME}>{categoryName}</div>
-          <div className={KEYWORD_CLASSNAME}>{keywordName}</div>
+          <div className={CATEGORY_CLASSNAME}>{shortenedCategoryName}</div>
+          <div className={KEYWORD_CLASSNAME}>{shortenedKeywordName}</div>
           <ArrowRight
             className="ml-2"
             size={ARROW_SIZE}
