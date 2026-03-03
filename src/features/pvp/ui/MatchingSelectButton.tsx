@@ -13,7 +13,7 @@ type MatchingSelectButtonProps = {
   onClick?: () => void
 }
 
-const WRAPPER_CLASSNAME = 'flex h-full w-full items-center'
+const WRAPPER_CLASSNAME = 'flex h-full w-full items-center cursor-pointer'
 const TEXT_CLASSNAME = 'flex flex-1 flex-col items-start gap-2'
 
 const LABEL_BY_VARIANT: Record<MatchingSelectVariant, { title: string; description: string }> = {

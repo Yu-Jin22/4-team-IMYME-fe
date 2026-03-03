@@ -51,7 +51,7 @@ export function Header({ showMenu = true, goMain = false }: HeaderProps) {
   return (
     <header className="flex w-full items-center justify-between px-3 py-4">
       <span
-        className="text-md font-semibold text-[rgb(var(--color-primary))]"
+        className="text-md cursor-pointer font-semibold text-[rgb(var(--color-primary))]"
         onClick={() => {
           if (goMain) {
             router.push('/main')
