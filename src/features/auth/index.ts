@@ -6,3 +6,7 @@ export {
   useClearAccesstoken,
   useSetAccessToken,
 } from './model/client/useAuthStore'
+export {
+  ensureClientAccessToken,
+  useEnsuredAccessToken,
+} from './model/client/useEnsuredAccessToken'

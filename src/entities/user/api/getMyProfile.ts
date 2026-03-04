@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 import type { UserProfile } from '../model/userProfile'
 
@@ -8,15 +8,13 @@ type GetMyProfileResponse = {
 
 type GetMyProfileResult = { ok: true; data: UserProfile } | { ok: false; reason: string }
 
-export async function getMyProfile(accessToken: string): Promise<GetMyProfileResult> {
-  try {
-    const response = await httpClient.get<GetMyProfileResponse>('/users/me', {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
-    })
+const MY_PROFILE_PROXY_PATH = '/proxy-api/users/me'
 
-    const profile = response.data?.data
+export async function getMyProfile(): Promise<GetMyProfileResult> {
+  try {
+    const response = await proxyApiClient.get<GetMyProfileResponse>(MY_PROFILE_PROXY_PATH)
+    const payload = response.data
+    const profile = payload.data
     if (!profile) {
       return { ok: false, reason: 'empty_profile' }
     }

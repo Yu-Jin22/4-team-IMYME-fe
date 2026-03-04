@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 type UpdateProfilePayload = {
   nickname: string | null
@@ -22,16 +22,12 @@ type UpdateProfileResult =
   | { ok: true; data: UpdateProfileResponse['data'] }
   | { ok: false; reason: string }
 
-export async function updateProfile(
-  accessToken: string,
-  payload: UpdateProfilePayload,
-): Promise<UpdateProfileResult> {
+export async function updateProfile(payload: UpdateProfilePayload): Promise<UpdateProfileResult> {
   try {
-    const response = await httpClient.patch<UpdateProfileResponse>('/users/me', payload, {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
-    })
+    const response = await proxyApiClient.patch<UpdateProfileResponse>(
+      '/proxy-api/users/me',
+      payload,
+    )
 
     return { ok: true, data: response.data?.data }
   } catch (error) {

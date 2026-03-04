@@ -2,7 +2,6 @@
 
 import { useSearchParams } from 'next/navigation'
 
-import { useAccessToken } from '@/features/auth'
 import { MicrophoneBox, useLevelUpRecordController } from '@/features/record'
 import { AlertModal, Button, ModeHeader, RecordTipBox, StatusLoader, SubjectHeader } from '@/shared'
 
@@ -20,7 +19,6 @@ function parseOptionalNumber(value: string | null): number | undefined {
 
 export function LevelUpRecordPage() {
   const searchParams = useSearchParams()
-  const accessToken = useAccessToken()
   const cardId = parseOptionalNumber(searchParams.get('cardId'))
   const attemptId = parseOptionalNumber(searchParams.get('attemptId'))
   const attemptNo = parseOptionalNumber(searchParams.get('attemptNo'))
@@ -40,7 +38,6 @@ export function LevelUpRecordPage() {
     handleMicAlertOpenChange,
     handleRecordingComplete,
   } = useLevelUpRecordController({
-    accessToken,
     cardId,
     attemptId,
     attemptNo,

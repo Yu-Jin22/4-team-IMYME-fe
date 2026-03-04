@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation'
 
 import { PvPCard } from '@/entities/pvp-card'
-import { useAccessToken } from '@/features/auth'
 import { useMyPvPCardList } from '@/features/my-pvp-card'
 import { StatusMessage } from '@/shared'
 
@@ -19,8 +18,7 @@ const getRecentHistoryItems = (histories: MyPvPHistoryItem[]) => histories
 
 export function RecentPvPList() {
   const router = useRouter()
-  const accessToken = useAccessToken()
-  const myPvPCardListQuery = useMyPvPCardList(accessToken, { size: RECENT_PVP_LIMIT })
+  const myPvPCardListQuery = useMyPvPCardList({ size: RECENT_PVP_LIMIT })
 
   if (myPvPCardListQuery.isLoading) {
     return <StatusMessage message={LOADING_MESSAGE} />
@@ -44,7 +42,6 @@ export function RecentPvPList() {
         <PvPCard
           key={history.historyId}
           historyId={history.historyId}
-          accessToken={accessToken}
           title={history.room.name}
           resultVariant={history.myResult.isWinner ? 'win' : 'lose'}
           opponentName={history.opponent.nickname}

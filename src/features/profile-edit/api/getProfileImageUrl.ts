@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 type PresignedUrlResponse = {
   data?: {
@@ -12,19 +12,11 @@ type PresignedUrlResult =
   | { ok: true; uploadUrl: string; profileImageKey: string }
   | { ok: false; reason: string }
 
-export async function getProfileImageUrl(
-  accessToken: string,
-  contentType: string,
-): Promise<PresignedUrlResult> {
+export async function getProfileImageUrl(contentType: string): Promise<PresignedUrlResult> {
   try {
-    const response = await httpClient.post<PresignedUrlResponse>(
-      '/users/me/profile-image/presigned-url',
+    const response = await proxyApiClient.post<PresignedUrlResponse>(
+      '/proxy-api/users/me/profile-image/presigned-url',
       { contentType },
-      {
-        headers: {
-          Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-        },
-      },
     )
 
     const uploadUrl = response.data?.data?.uploadUrl

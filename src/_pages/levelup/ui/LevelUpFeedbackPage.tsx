@@ -1,7 +1,6 @@
 'use client'
 
 import { useOptimisticActiveCardCount } from '@/entities/user'
-import { useAccessToken } from '@/features/auth'
 import { INITIAL_ATTEMPT_DURATION_SECONDS } from '@/features/levelup'
 import {
   deleteAttempt,
@@ -14,7 +13,6 @@ import { AlertModal, Button, ModeHeader, StatusLoader, SubjectHeader } from '@/s
 const ACTIVE_CARD_COUNT_INCREMENT = 1
 
 export function LevelUpFeedbackPage() {
-  const accessToken = useAccessToken()
   const { applyDelta } = useOptimisticActiveCardCount()
   const {
     data,
@@ -31,7 +29,6 @@ export function LevelUpFeedbackPage() {
     handleExitConfirm,
     handleExitCancel,
   } = useLevelUpFeedbackController({
-    accessToken,
     createAttempt,
     deleteAttempt,
     initialAttemptDurationSeconds: INITIAL_ATTEMPT_DURATION_SECONDS,

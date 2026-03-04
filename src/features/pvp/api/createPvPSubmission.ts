@@ -1,5 +1,5 @@
 import { isSupportedAudioContentType } from '@/shared'
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 export type CreatePvPSubmissionPayload = {
   fileName: string
@@ -32,7 +32,6 @@ export type CreatePvPSubmissionResult =
   | { ok: false; reason: string }
 
 export async function createPvPSubmission(
-  accessToken: string,
   roomId: number,
   payload: CreatePvPSubmissionPayload,
 ): Promise<CreatePvPSubmissionResult> {
@@ -42,14 +41,9 @@ export async function createPvPSubmission(
       return { ok: false, reason: 'unsupported_content_type' }
     }
 
-    const response = await httpClient.post<CreatePvPSubmissionResponse>(
-      `/pvp/rooms/${roomId}/submissions`,
+    const response = await proxyApiClient.post<CreatePvPSubmissionResponse>(
+      `/proxy-api/pvp/rooms/${roomId}/submissions`,
       payload,
-      {
-        headers: {
-          Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-        },
-      },
     )
 
     const submission = response.data?.data

@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 export type CardAttempt = {
   id: number
@@ -32,16 +32,9 @@ export type CardAttemptSummary = {
   createdAt: string
 }
 
-export async function getCardDetails(
-  accessToken: string,
-  cardId: number | undefined,
-): Promise<CardDetails | null> {
+export async function getCardDetails(cardId: number | undefined): Promise<CardDetails | null> {
   try {
-    const response = await httpClient.get<CardDetailsResponse>(`/cards/${cardId}`, {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
-    })
+    const response = await proxyApiClient.get<CardDetailsResponse>(`/proxy-api/cards/${cardId}`)
 
     return response.data?.data ?? null
   } catch (error) {

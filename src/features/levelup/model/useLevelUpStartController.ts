@@ -7,7 +7,6 @@ import type { CategoryItemType } from '@/entities/category'
 import type { KeywordItemType } from '@/entities/keyword'
 
 type LevelUpStartControllerResult = {
-  accessToken: string
   selectedCategory: CategoryItemType | null
   selectedKeyword: KeywordItemType | null
   isNameDialogOpen: boolean
@@ -40,7 +39,7 @@ export function useLevelUpStartController(): LevelUpStartControllerResult {
   } = useLevelUpStartState()
 
   // 카드 생성/시도 생성/뒤로가기 액션 로직
-  const { accessToken, handleConfirmCardName, handleBack } = useLevelUpStartActions({
+  const { handleConfirmCardName, handleBack } = useLevelUpStartActions({
     selectedCategory,
     selectedKeyword,
     onClearKeyword: clearKeyword,
@@ -49,7 +48,6 @@ export function useLevelUpStartController(): LevelUpStartControllerResult {
   })
 
   return {
-    accessToken,
     selectedCategory,
     selectedKeyword,
     isNameDialogOpen,

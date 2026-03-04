@@ -18,7 +18,6 @@ export type PvPMatchingAccessState =
   | 'ready'
 
 type UsePvPMatchingAccessParams = {
-  accessToken: string | null
   roomId: number
 }
 
@@ -40,7 +39,6 @@ type UsePvPMatchingAccessResult = {
 }
 
 export function usePvPMatchingAccess({
-  accessToken,
   roomId,
 }: UsePvPMatchingAccessParams): UsePvPMatchingAccessResult {
   // URL 파라미터가 숫자가 아니면 이후 query 실행 자체를 막아야 한다.
@@ -48,13 +46,13 @@ export function usePvPMatchingAccess({
 
   // 유저 id는 store가 우선이고, 없는 경우에만 myProfile query로 보완한다.
   const storeUserId = useUserId()
-  const shouldFetchMyProfile = Boolean(accessToken) && storeUserId <= 0
-  const myProfileQuery = useMyProfileQuery(accessToken, { enabled: shouldFetchMyProfile })
+  const shouldFetchMyProfile = storeUserId <= 0
+  const myProfileQuery = useMyProfileQuery({ enabled: shouldFetchMyProfile })
   const myUserId = storeUserId > 0 ? storeUserId : myProfileQuery.data?.id
   const hasMyUserId = typeof myUserId === 'number' && myUserId > 0
 
   // 방 기본 상세 조회는 매칭 페이지 진입 시 항상 먼저 수행한다.
-  const roomDetailsQuery = usePvPRoomDetails(accessToken, roomId, {
+  const roomDetailsQuery = usePvPRoomDetails(roomId, {
     enabled: !isInvalidRoomId,
   })
   const roomDetailsFromServer = roomDetailsQuery.data
@@ -64,8 +62,7 @@ export function usePvPMatchingAccess({
   const isGuestUser = hasMyUserId && roomDetailsFromServer?.guest?.id === myUserId
 
   // join은 "로그인한 사용자 + 내 id 확보 + 방 상세 확보"까지 끝났을 때만 판단 가능하다.
-  const canEvaluateJoinRequirement =
-    Boolean(accessToken) && hasMyUserId && Boolean(roomDetailsFromServer)
+  const canEvaluateJoinRequirement = hasMyUserId && Boolean(roomDetailsFromServer)
   // 빈 OPEN 방이고, 아직 내가 참가자가 아닐 때만 join을 시도한다.
   const shouldAttemptJoinRoom =
     canEvaluateJoinRequirement &&
@@ -75,7 +72,7 @@ export function usePvPMatchingAccess({
     roomDetailsFromServer.guest === null
 
   // guest로 진입하는 경우에만 join API를 호출한다.
-  const roomJoinQuery = usePvPRoomJoinQuery(accessToken, roomId, {
+  const roomJoinQuery = usePvPRoomJoinQuery(roomId, {
     enabled: shouldAttemptJoinRoom,
   })
 

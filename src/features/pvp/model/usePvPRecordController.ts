@@ -40,7 +40,6 @@ const buildPvPSubmissionFileName = (contentType: string) => {
 }
 
 type UsePvPRecordControllerParams = {
-  accessToken: string | null
   roomId: number | null
   roomStatus: string | null
 }
@@ -62,7 +61,6 @@ type UsePvPRecordControllerResult = {
 }
 
 export function usePvPRecordController({
-  accessToken,
   roomId,
   roomStatus,
 }: UsePvPRecordControllerParams): UsePvPRecordControllerResult {
@@ -128,7 +126,7 @@ export function usePvPRecordController({
       setIsSubmittingSubmission(true)
       let shouldKeepSubmitted = false
       try {
-        if (!accessToken || !roomId) {
+        if (!roomId) {
           toast.error(CREATE_SUBMISSION_ERROR_MESSAGE)
           return
         }
@@ -138,7 +136,7 @@ export function usePvPRecordController({
         const contentType = resolveAudioContentType(normalizedMimeType)
 
         // 1) submission 생성 (presigned upload URL 발급)
-        const createSubmissionResult = await createPvPSubmission(accessToken, roomId, {
+        const createSubmissionResult = await createPvPSubmission(roomId, {
           fileName: buildPvPSubmissionFileName(contentType),
           contentType,
           fileSize: completedBlob.size,
@@ -164,7 +162,6 @@ export function usePvPRecordController({
         // 3) 업로드 완료 후 submission complete 호출
         const durationSeconds = getDurationSeconds()
         const completeSubmissionResult = await completePvPSubmission(
-          accessToken,
           createSubmissionResult.data.submissionId,
           { durationSeconds },
         )
@@ -188,7 +185,7 @@ export function usePvPRecordController({
         setIsSubmittingSubmission(false)
       }
     },
-    [accessToken, getDurationSeconds, roomId],
+    [getDurationSeconds, roomId],
   )
 
   const handlePvPMicClick = async () => {

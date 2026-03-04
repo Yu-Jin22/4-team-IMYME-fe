@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 import type { KeywordItemType } from '@/entities/keyword'
 
@@ -16,18 +16,10 @@ interface KeywordApiResponse {
   keywords?: KeywordApiItem[]
 }
 
-export async function getKeywords(
-  accessToken: string,
-  categoryId: number | null,
-): Promise<KeywordItemType[]> {
+export async function getKeywords(categoryId: number | null): Promise<KeywordItemType[]> {
   try {
-    const response = await httpClient.get<KeywordApiResponse>(
-      `/categories/${categoryId}/keywords`,
-      {
-        headers: {
-          Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-        },
-      },
+    const response = await proxyApiClient.get<KeywordApiResponse>(
+      `/proxy-api/categories/${categoryId}/keywords`,
     )
 
     const items = response.data?.data?.keywords ?? response.data?.keywords ?? []
