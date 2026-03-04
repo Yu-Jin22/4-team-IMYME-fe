@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { exitPvPRoom } from '@/entities/room'
 
 const EXIT_ROOM_ERROR_MESSAGE = '매칭을 종료하던 중 오류가 발생하였습니다.'
-const EXIT_ROOM_PATH = '/pvp/rooms'
+const EXIT_ROOM_PATH = '/pvp'
 
 type UsePvPMatchingExitGuardParams = {
   joinedRoomId: number | null
