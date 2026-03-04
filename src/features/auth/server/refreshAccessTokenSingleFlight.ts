@@ -24,9 +24,10 @@ const MISSING_REFRESH_TOKEN_STATUS = 401
 const MISSING_ACCESS_TOKEN_STATUS = 401
 const UNKNOWN_ERROR_STATUS = 500
 
-// 같은 refresh token으로 동시에 들어온 refresh 요청은 하나의 백엔드 호출만 공유한다.
+// 같은 refresh token으로 동시에 들어온 refresh 요청은 하나의 백엔드 호출만 공유
 const refreshInFlightMap = new Map<string, Promise<RefreshAccessTokenResult>>()
 
+/* refresh token을 받아서 access token 재발급 결과를 반환하는 함수 */
 const requestRefreshAccessToken = async (
   refreshToken: string,
 ): Promise<RefreshAccessTokenResult> => {
