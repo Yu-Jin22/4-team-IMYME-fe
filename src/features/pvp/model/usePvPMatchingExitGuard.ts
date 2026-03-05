@@ -40,19 +40,25 @@ export function usePvPMatchingExitGuard({
 
     setIsExitingRoom(true)
 
+    let shouldShowExitErrorToast = false
+
     if (joinedRoomId) {
       const isExited = await exitPvPRoom(joinedRoomId)
       if (!isExited) {
-        setIsExitingRoom(false)
-        toast.error(EXIT_ROOM_ERROR_MESSAGE)
-        return
+        shouldShowExitErrorToast = true
       }
     }
 
-    setIsExitAlertOpen(false)
-    await cleanupMatchingConnection()
-    setIsExitingRoom(false)
-    router.replace(EXIT_ROOM_PATH)
+    try {
+      setIsExitAlertOpen(false)
+      await cleanupMatchingConnection()
+    } finally {
+      setIsExitingRoom(false)
+      if (shouldShowExitErrorToast) {
+        toast.error(EXIT_ROOM_ERROR_MESSAGE)
+      }
+      router.replace(EXIT_ROOM_PATH)
+    }
   }
 
   const handleExitCancel = () => {
