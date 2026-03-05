@@ -9,6 +9,7 @@ import { useEnsuredAccessToken } from '@/features/auth'
 import {
   getPvPMatchingUiState,
   MATCHED_ROOM_STATUS,
+  OPEN_ROOM_STATUS,
   PVP_MATCHING_ACCESS_DENIED_MESSAGE,
   PVP_MATCHING_ERROR_MESSAGE,
   PVP_MATCHING_INVALID_ROOM_ID_MESSAGE,
@@ -70,6 +71,8 @@ export function PvPMatchingPage() {
     thinkingKeywordName,
     thinkingEndsAtMs,
     setLiveRoomStatus,
+    resetBattleKeywordDisplay,
+    unregisterRoomSession,
     cleanupMatchingConnection,
   } = usePvPMatchingSocket({
     accessToken: socketAccessToken,
@@ -114,6 +117,7 @@ export function PvPMatchingPage() {
   const { isExitAlertOpen, handleBack, handleExitConfirm, handleExitCancel, setIsExitAlertOpen } =
     usePvPMatchingExitGuard({
       joinedRoomId: participantRoomId,
+      unregisterRoomSession,
       cleanupMatchingConnection,
     })
 
@@ -145,6 +149,19 @@ export function PvPMatchingPage() {
     shouldRedirectToRooms,
     cleanupMatchingConnection,
   })
+
+  // 호스트 OPEN 대기 화면(PvPMatchingWaiting)으로 전환되면
+  // 이전 battle 섹션에서 보던 키워드 표시 상태를 초기화한다.
+  const shouldResetBattleKeywordOnWaiting =
+    accessState === 'ready' &&
+    Boolean(resolvedRoomDetails) &&
+    (liveRoomStatus ?? resolvedRoomDetails?.status) === OPEN_ROOM_STATUS &&
+    resolvedRoomDetails?.host.id === myUserId
+
+  useEffect(() => {
+    if (!shouldResetBattleKeywordOnWaiting) return
+    resetBattleKeywordDisplay()
+  }, [resetBattleKeywordDisplay, shouldResetBattleKeywordOnWaiting])
 
   // accessState 하나로 페이지 초기 상태를 표준화해 렌더 분기를 단순화한다.
   if (accessState === 'invalid_room_id') {
@@ -205,10 +222,7 @@ export function PvPMatchingPage() {
       />
       <PvPCategory categoryName={roomDetails.category.name} />
       {isHostWaitingOpenState ? (
-        <PvPMatchingWaiting
-          leftProfile={leftProfile}
-          rightProfile={rightProfile}
-        />
+        <PvPMatchingWaiting leftProfile={leftProfile} />
       ) : (
         <PvPParticipants
           leftProfile={leftProfile}

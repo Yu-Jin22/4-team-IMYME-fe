@@ -57,6 +57,7 @@ export function PvPFeedbackView({ variant, roomId, messages }: PvPFeedbackViewPr
   }
 
   const { leftProfile, rightProfile } = toPvPParticipantProfiles(details)
+  const winnerCardVariant = details.winner ? 'winner' : 'no_winner'
 
   const handleBackClick = () => {
     if (variant === 'matching') {
@@ -88,6 +89,7 @@ export function PvPFeedbackView({ variant, roomId, messages }: PvPFeedbackViewPr
             avatarUrl={details.winner?.profileImageUrl}
           />
         }
+        variant={winnerCardVariant}
       />
       <PvPFeedbackPanel feedback={details.myResult?.feedback} />
     </div>
