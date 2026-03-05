@@ -4,13 +4,14 @@ import { CircleCheckBig } from 'lucide-react'
 
 import { Spinner } from '@/shared'
 
+import { PVP_MATCHING_EMPTY_GUEST_NAME } from '../model/pvpMatchingConstants'
+
 import { PvPParticipants } from './PvPParticipants'
 
 import type { PvPParticipantProfile } from './PvPParticipants'
 
 type PvPMatchingWaitingProps = {
   leftProfile: PvPParticipantProfile
-  rightProfile: PvPParticipantProfile
   showSpinner?: boolean
 }
 
@@ -18,11 +19,12 @@ const WRAPPER_CLASSNAME = 'mt-30 flex w-full flex-col gap-10'
 const STATUS_WRAPPER_CLASSNAME = 'flex w-full flex-col items-center justify-center gap-4'
 const SPINNER_WRAPPER_CLASSNAME =
   'bg-secondary flex h-20 w-20 items-center justify-center rounded-full'
-export function PvPMatchingWaiting({
-  leftProfile,
-  rightProfile,
-  showSpinner = true,
-}: PvPMatchingWaitingProps) {
+const DEFAULT_WAITING_RIGHT_PROFILE: PvPParticipantProfile = {
+  name: PVP_MATCHING_EMPTY_GUEST_NAME,
+  avatarUrl: '',
+}
+
+export function PvPMatchingWaiting({ leftProfile, showSpinner = true }: PvPMatchingWaitingProps) {
   return (
     <div className={WRAPPER_CLASSNAME}>
       <div className={STATUS_WRAPPER_CLASSNAME}>
@@ -33,7 +35,7 @@ export function PvPMatchingWaiting({
       </div>
       <PvPParticipants
         leftProfile={leftProfile}
-        rightProfile={rightProfile}
+        rightProfile={DEFAULT_WAITING_RIGHT_PROFILE}
       />
     </div>
   )

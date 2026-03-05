@@ -52,6 +52,8 @@ type UsePvPMatchingSocketResult = {
   thinkingEndsAtMs: number | null
   // 외부에서 status를 강제로 덮어쓸 때 사용하는 setter
   setLiveRoomStatus: (status: string | null) => void
+  // battle UI 표시용 THINKING 상태를 초기화한다.
+  resetBattleKeywordDisplay: () => void
   // 페이지 이탈 시 구독/연결 정리 함수
   cleanupMatchingConnection: () => Promise<void>
 }
@@ -152,11 +154,17 @@ export function usePvPMatchingSocket({
     onTopicMessage: handleTopicMessage,
   })
 
+  const resetBattleKeywordDisplay = useCallback(() => {
+    setThinkingKeywordName(null)
+    setThinkingEndsAtMs(null)
+  }, [])
+
   return {
     liveRoomStatus,
     thinkingKeywordName,
     thinkingEndsAtMs,
     setLiveRoomStatus,
+    resetBattleKeywordDisplay,
     cleanupMatchingConnection,
   }
 }
