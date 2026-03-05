@@ -72,6 +72,7 @@ export function PvPMatchingPage() {
     thinkingEndsAtMs,
     setLiveRoomStatus,
     resetBattleKeywordDisplay,
+    unregisterRoomSession,
     cleanupMatchingConnection,
   } = usePvPMatchingSocket({
     accessToken: socketAccessToken,
@@ -116,6 +117,7 @@ export function PvPMatchingPage() {
   const { isExitAlertOpen, handleBack, handleExitConfirm, handleExitCancel, setIsExitAlertOpen } =
     usePvPMatchingExitGuard({
       joinedRoomId: participantRoomId,
+      unregisterRoomSession,
       cleanupMatchingConnection,
     })
 

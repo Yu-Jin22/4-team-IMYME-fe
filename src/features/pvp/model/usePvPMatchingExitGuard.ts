@@ -11,6 +11,7 @@ const EXIT_ROOM_PATH = '/pvp'
 
 type UsePvPMatchingExitGuardParams = {
   joinedRoomId: number | null
+  unregisterRoomSession: () => void
   cleanupMatchingConnection: () => Promise<void>
 }
 
@@ -25,6 +26,7 @@ type UsePvPMatchingExitGuardResult = {
 
 export function usePvPMatchingExitGuard({
   joinedRoomId,
+  unregisterRoomSession,
   cleanupMatchingConnection,
 }: UsePvPMatchingExitGuardParams): UsePvPMatchingExitGuardResult {
   const router = useRouter()
@@ -43,6 +45,7 @@ export function usePvPMatchingExitGuard({
     let shouldShowExitErrorToast = false
 
     if (joinedRoomId) {
+      unregisterRoomSession()
       const isExited = await exitPvPRoom(joinedRoomId)
       if (!isExited) {
         shouldShowExitErrorToast = true
