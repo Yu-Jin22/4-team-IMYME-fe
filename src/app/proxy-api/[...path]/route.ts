@@ -6,6 +6,7 @@ import { ACCESS_TOKEN_COOKIE } from '@/features/auth/server'
 const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
 const EMPTY_BODY_SIZE = 0
 const FORWARDED_HEADER_KEYS = ['content-type', 'accept'] as const
+const NO_BODY_STATUS_CODES = new Set([204, 205, 304])
 
 const buildBackendUrl = (pathSegments: string[], searchParams: URLSearchParams) => {
   const normalizedBaseUrl = BACKEND_BASE_URL.replace(/\/$/, '')
@@ -50,6 +51,12 @@ const createProxyResponse = async (request: NextRequest, pathSegments: string[])
   const contentType = upstreamResponse.headers.get('content-type')
   if (contentType) {
     responseHeaders.set('content-type', contentType)
+  }
+
+  if (NO_BODY_STATUS_CODES.has(upstreamResponse.status)) {
+    return new NextResponse(null, {
+      status: upstreamResponse.status,
+    })
   }
 
   const responseBody = await upstreamResponse.arrayBuffer()
