@@ -1,7 +1,9 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
+import { memo } from 'react'
 
+import { useCardDetails } from '@/features/levelup-feedback'
 import { MicrophoneBox, useLevelUpRecordController } from '@/features/record'
 import { AlertModal, Button, ModeHeader, RecordTipBox, StatusLoader, SubjectHeader } from '@/shared'
 
@@ -10,6 +12,11 @@ import { useLevelUpRecordExitGuard } from '../model/useLevelUpRecordExitGuard'
 const RECORD_PROGRESS_VALUE = 100
 const RECORD_STEP_LABEL = '3/3'
 
+type RecordSubmitButtonProps = {
+  onComplete: () => Promise<void>
+  isSubmitting: boolean
+}
+
 function parseOptionalNumber(value: string | null): number | undefined {
   if (!value) return undefined
 
@@ -17,14 +24,31 @@ function parseOptionalNumber(value: string | null): number | undefined {
   return Number.isNaN(parsedValue) ? undefined : parsedValue
 }
 
+const RecordSubmitButton = memo(function RecordSubmitButton({
+  onComplete,
+  isSubmitting,
+}: RecordSubmitButtonProps) {
+  return (
+    <div className="mt-auto mb-6 flex w-full items-center justify-center gap-4 pt-4">
+      <Button
+        variant="record_confirm_btn"
+        onClick={onComplete}
+        disabled={isSubmitting}
+      >
+        녹음 완료 및 피드백 받기
+      </Button>
+    </div>
+  )
+})
+
 export function LevelUpRecordPage() {
   const searchParams = useSearchParams()
   const cardId = parseOptionalNumber(searchParams.get('cardId'))
   const attemptId = parseOptionalNumber(searchParams.get('attemptId'))
   const attemptNo = parseOptionalNumber(searchParams.get('attemptNo'))
+  const { data } = useCardDetails(cardId)
 
   const {
-    data,
     isSubmittingFeedback,
     uploadStatus,
     isStartingWarmup,
@@ -32,7 +56,7 @@ export function LevelUpRecordPage() {
     isMicAlertOpen,
     isRecording,
     isPaused,
-    elapsedSeconds,
+    getElapsedSeconds,
     recordedBlob,
     handleMicClick,
     handleMicAlertOpenChange,
@@ -72,19 +96,14 @@ export function LevelUpRecordPage() {
           isMicDisabled={Boolean(recordedBlob)}
           isRecording={isRecording}
           isPaused={isPaused}
-          elapsedSeconds={elapsedSeconds}
+          getElapsedSeconds={getElapsedSeconds}
         />
       )}
       <RecordTipBox />
-      <div className="mt-auto mb-6 flex w-full items-center justify-center gap-4 pt-4">
-        <Button
-          variant="record_confirm_btn"
-          onClick={handleRecordingComplete}
-          disabled={isSubmittingFeedback}
-        >
-          녹음 완료 및 피드백 받기
-        </Button>
-      </div>
+      <RecordSubmitButton
+        onComplete={handleRecordingComplete}
+        isSubmitting={isSubmittingFeedback}
+      />
       <AlertModal
         open={isBackAlertOpen}
         onOpenChange={handleBackAlertOpenChange}

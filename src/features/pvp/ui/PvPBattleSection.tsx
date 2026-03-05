@@ -19,7 +19,7 @@ type PvPBattleSectionProps = {
   // 녹음 컨트롤러 상태
   isRecording: boolean
   isPaused: boolean
-  elapsedSeconds: number
+  getElapsedSeconds: () => number
   isMicDisabled: boolean
   // 마이크/준비 버튼 액션
   onMicClick: () => void
@@ -36,7 +36,7 @@ export function PvPBattleSection({
   isProcessingStep,
   isRecording,
   isPaused,
-  elapsedSeconds,
+  getElapsedSeconds,
   isMicDisabled,
   onMicClick,
   onReadyClick,
@@ -63,7 +63,7 @@ export function PvPBattleSection({
           isMicDisabled={isMicDisabled}
           isRecording={isRecording}
           isPaused={isPaused}
-          elapsedSeconds={elapsedSeconds}
+          getElapsedSeconds={getElapsedSeconds}
         />
       )}
       {/* 녹음 가이드와 준비 버튼은 battle 영역 하단에 고정한다. */}

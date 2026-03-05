@@ -121,7 +121,7 @@ export function PvPMatchingPage() {
     isRecording,
     // 일시정지 여부(현재 PvP는 pause 비활성 설계지만 UI 호환으로 유지)
     isPaused,
-    elapsedSeconds,
+    getElapsedSeconds,
     recordedBlob,
     // 마이크 상호작용 허용 여부
     isMicInteractionAllowed,
@@ -224,7 +224,7 @@ export function PvPMatchingPage() {
           isProcessingStep={isProcessingStep}
           isRecording={isRecording}
           isPaused={isPaused}
-          elapsedSeconds={elapsedSeconds}
+          getElapsedSeconds={getElapsedSeconds}
           isMicDisabled={Boolean(recordedBlob) || !isMicInteractionAllowed}
           onMicClick={() => {
             void handlePvPMicClick()

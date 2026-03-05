@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { startWarmup } from '@/features/levelup'
-import { useCardDetails } from '@/features/levelup-feedback'
 import { resolveAudioContentType } from '@/shared'
 
 import { completeAudioUpload } from '../api/completeAudioUpload'
@@ -26,7 +25,6 @@ type UseLevelUpRecordControllerParams = {
 }
 
 type UseLevelUpRecordControllerResult = {
-  data: ReturnType<typeof useCardDetails>['data']
   isSubmittingFeedback: boolean
   uploadStatus: FeedbackStatus | null
   isStartingWarmup: boolean
@@ -34,10 +32,10 @@ type UseLevelUpRecordControllerResult = {
   isMicAlertOpen: boolean
   isRecording: boolean
   isPaused: boolean
-  elapsedSeconds: number
   recordedBlob: Blob | null
   handleMicClick: () => Promise<void>
   handleMicAlertOpenChange: (open: boolean) => void
+  getElapsedSeconds: () => number
   handleRecordingComplete: () => Promise<void>
 }
 
@@ -47,13 +45,12 @@ export function useLevelUpRecordController({
   attemptNo,
 }: UseLevelUpRecordControllerParams): UseLevelUpRecordControllerResult {
   const router = useRouter()
-  const { data } = useCardDetails(cardId)
 
   const {
     isMicAlertOpen,
     isRecording,
     isPaused,
-    elapsedSeconds,
+    getElapsedSeconds,
     recordedBlob,
     autoStopped,
     handleMicClick: handleBaseMicClick,
@@ -190,7 +187,6 @@ export function useLevelUpRecordController({
   }, [autoStopped, handleRecordingComplete, isSubmittingFeedback, recordedBlob, resetAutoStopped])
 
   return {
-    data,
     isSubmittingFeedback,
     uploadStatus,
     isStartingWarmup,
@@ -198,10 +194,10 @@ export function useLevelUpRecordController({
     isMicAlertOpen,
     isRecording,
     isPaused,
-    elapsedSeconds,
     recordedBlob,
     handleMicClick,
     handleMicAlertOpenChange,
+    getElapsedSeconds,
     handleRecordingComplete,
   }
 }

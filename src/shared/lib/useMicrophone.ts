@@ -16,7 +16,6 @@ const DEFAULT_MIC_PERMISSION_STATE = 'unavailable'
 type UseMicrophoneResult = {
   isRecording: boolean
   isPaused: boolean
-  elapsedSeconds: number // 현재 녹음 경과(초) - UI 타이머 표시용
   recordedDurationSeconds: number // 최종 녹음 길이(초) - stop 시점에 확정
   micPermissionState: string // 권한 상태 문자열(permissions API 기반)
   isMicAlertOpen: boolean // 마이크 권한 안내 모달 open 상태
@@ -26,6 +25,7 @@ type UseMicrophoneResult = {
   recordedBlob: Blob | null // 녹음 완료 후 생성된 Blob
   startRecording: () => Promise<boolean> // 녹음 시작 (권한 확인 포함)
   stopRecordingAndGetBlob: () => Promise<Blob | null> // stop 후 blob 반환(비동기)
+  getElapsedSeconds: () => number // 현재 녹음 경과(초) - UI 표시용 getter
   getDurationSeconds: () => number // duration 계산(확정값 or 경과값)
   pauseRecording: () => void // 일시정지
   resumeRecording: () => void // 재개
@@ -38,11 +38,10 @@ export function useMicrophone(): UseMicrophoneResult {
   const [isRecording, setIsRecording] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
 
-  // ✅ UI에 표시할 타이머(초)
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
-
   // ✅ 최종 녹음 길이(초) - stop 시점에 set
   const [recordedDurationSeconds, setRecordedDurationSeconds] = useState(0)
+  // ✅ stop 직후에도 동기적으로 duration을 읽을 수 있도록 최종 duration을 ref에도 저장한다.
+  const recordedDurationSecondsRef = useRef(0)
 
   // ✅ permissions API로 얻은 마이크 권한 상태
   const [micPermissionState, setMicPermissionState] = useState<string>(DEFAULT_MIC_PERMISSION_STATE)
@@ -55,17 +54,19 @@ export function useMicrophone(): UseMicrophoneResult {
 
   // ✅ 녹음 결과 Blob
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
+  const recordedBlobRef = useRef<Blob | null>(null)
 
   // ✅ 실제 MediaRecorder 인스턴스(녹음 수행 엔진)
   const [recorder, setRecorder] = useState<MediaRecorder | null>(null)
+  const recorderRef = useRef<MediaRecorder | null>(null)
 
   // ✅ getUserMedia로 얻은 stream (stop 시 track stop 필요)
-  const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null)
+  const recordingStreamRef = useRef<MediaStream | null>(null)
 
   // ✅ “최대 녹음 제한” 타이머 id 저장
   const recordTimeoutRef = useRef<number | null>(null)
 
-  // ✅ elapsedSeconds를 업데이트하는 interval id 저장
+  // ✅ 경과 시간 계산 tick interval id 저장
   const elapsedIntervalRef = useRef<number | null>(null)
 
   // ✅ MediaRecorder에서 오는 chunk들을 모아두는 버퍼(BlobPart[])
@@ -84,56 +85,57 @@ export function useMicrophone(): UseMicrophoneResult {
   const stopResolveRef = useRef<((blob: Blob | null) => void) | null>(null)
 
   // ✅ 녹음 정지 함수(내부용). isAutoStop=true면 자동 종료 플래그를 세팅
-  const stopRecording = useCallback(
-    (isAutoStop = false) => {
-      // ✅ “녹음 중”이었다면, 마지막 구간의 elapsedMs를 누적
-      if (recordStartAtRef.current) {
-        const elapsedMs = Date.now() - recordStartAtRef.current
-        elapsedMsRef.current += elapsedMs
+  const stopRecording = useCallback((isAutoStop = false) => {
+    // ✅ “녹음 중”이었다면, 마지막 구간의 elapsedMs를 누적
+    if (recordStartAtRef.current) {
+      const elapsedMs = Date.now() - recordStartAtRef.current
+      elapsedMsRef.current += elapsedMs
+    }
+
+    // ✅ 최종 duration(초) 확정 값 세팅(0 미만 방지)
+    const finalizedDurationSeconds = Math.floor(Math.max(0, elapsedMsRef.current) / 1000)
+    recordedDurationSecondsRef.current = finalizedDurationSeconds
+    setRecordedDurationSeconds(finalizedDurationSeconds)
+
+    // ✅ autoStop 여부 반영
+    setAutoStopped(isAutoStop)
+
+    // ✅ 최대 제한 timeout 정리
+    if (recordTimeoutRef.current) {
+      window.clearTimeout(recordTimeoutRef.current)
+      recordTimeoutRef.current = null
+    }
+
+    // ✅ recorder가 활성 상태면 stop 호출
+    const currentRecorder = recorderRef.current
+    if (currentRecorder && currentRecorder.state !== 'inactive') {
+      try {
+        currentRecorder.stop() // ✅ 여기서 onstop 이벤트가 발생하며 Blob 생성 로직이 실행됨
+      } catch {
+        // ignore: recorder.stop 예외는 무시(브라우저/상태 경쟁)
       }
+    }
 
-      // ✅ 최종 duration(초) 확정 값 세팅(0 미만 방지)
-      setRecordedDurationSeconds(Math.floor(Math.max(0, elapsedMsRef.current) / 1000))
+    // ✅ stream 트랙 종료(마이크 리소스 반환)
+    const currentRecordingStream = recordingStreamRef.current
+    if (currentRecordingStream) {
+      currentRecordingStream.getTracks().forEach((track) => track.stop())
+    }
 
-      // ✅ autoStop 여부 반영
-      setAutoStopped(isAutoStop)
+    // ✅ 내부 상태 리셋
+    setRecorder(null)
+    recorderRef.current = null
+    recordingStreamRef.current = null
+    setIsRecording(false)
+    setIsPaused(false)
 
-      // ✅ 최대 제한 timeout 정리
-      if (recordTimeoutRef.current) {
-        window.clearTimeout(recordTimeoutRef.current)
-        recordTimeoutRef.current = null
-      }
+    // ✅ 타이머 ref 초기화
+    recordStartAtRef.current = null
+    elapsedMsRef.current = 0
+    remainingMsRef.current = MAX_RECORDING_MS
+  }, [])
 
-      // ✅ recorder가 활성 상태면 stop 호출
-      if (recorder && recorder.state !== 'inactive') {
-        try {
-          recorder.stop() // ✅ 여기서 onstop 이벤트가 발생하며 Blob 생성 로직이 실행됨
-        } catch {
-          // ignore: recorder.stop 예외는 무시(브라우저/상태 경쟁)
-        }
-      }
-
-      // ✅ stream 트랙 종료(마이크 리소스 반환)
-      if (recordingStream) {
-        recordingStream.getTracks().forEach((track) => track.stop())
-      }
-
-      // ✅ 내부 상태 리셋
-      setRecorder(null)
-      setRecordingStream(null)
-      setIsRecording(false)
-      setIsPaused(false)
-
-      // ✅ 타이머 ref/상태 초기화
-      recordStartAtRef.current = null
-      elapsedMsRef.current = 0
-      remainingMsRef.current = MAX_RECORDING_MS
-      setElapsedSeconds(0)
-    },
-    [recorder, recordingStream], // ⚠️ state 의존으로 stopRecording 참조가 변할 수 있음(정리 포인트에서 개선 제안)
-  )
-
-  // ✅ 녹음 중 + 일시정지 아님 상태에서 elapsedSeconds 업데이트
+  // ✅ 녹음 중 + 일시정지 아님 상태에서 자동 종료 시점만 감시한다.
   useEffect(() => {
     if (!isRecording || isPaused) return
 
@@ -144,11 +146,7 @@ export function useMicrophone(): UseMicrophoneResult {
       // ✅ 최대 시간 초과면 자동 종료 처리
       if (elapsedMs >= MAX_RECORDING_MS) {
         stopRecording(true)
-        return
       }
-
-      // ✅ UI 표시용 경과초 업데이트
-      setElapsedSeconds(Math.floor(Math.max(0, elapsedMs) / 1000))
     }, TIMER_INTERVAL_MS)
 
     // ✅ cleanup: interval 제거
@@ -166,11 +164,13 @@ export function useMicrophone(): UseMicrophoneResult {
       if (recordTimeoutRef.current) {
         window.clearTimeout(recordTimeoutRef.current)
       }
-      if (recordingStream) {
-        recordingStream.getTracks().forEach((track) => track.stop())
+
+      const currentRecordingStream = recordingStreamRef.current
+      if (currentRecordingStream) {
+        currentRecordingStream.getTracks().forEach((track) => track.stop())
       }
     }
-  }, [recordingStream])
+  }, [])
 
   // ✅ permissions API로 마이크 권한 상태 확인(지원 안 하면 unavailable)
   const checkPermission = async () => {
@@ -241,7 +241,9 @@ export function useMicrophone(): UseMicrophoneResult {
     // 5) chunk 버퍼/상태 초기화
     chunksRef.current = []
     setRecordedBlob(null)
+    recordedBlobRef.current = null
     setRecordedDurationSeconds(0)
+    recordedDurationSecondsRef.current = 0
 
     // 6) 데이터 chunk 수집 핸들러
     startResult.recorder.ondataavailable = (event) => {
@@ -260,6 +262,7 @@ export function useMicrophone(): UseMicrophoneResult {
       if (blob) {
         setRecordedBlob(blob)
       }
+      recordedBlobRef.current = blob
 
       // ✅ 버퍼 비움
       chunksRef.current = []
@@ -274,7 +277,8 @@ export function useMicrophone(): UseMicrophoneResult {
 
     // 8) recorder/stream 상태 저장
     setRecorder(startResult.recorder)
-    setRecordingStream(startResult.stream)
+    recorderRef.current = startResult.recorder
+    recordingStreamRef.current = startResult.stream
 
     // 9) UI 상태 초기화 및 시작 시각 기록
     setIsRecording(true)
@@ -285,7 +289,6 @@ export function useMicrophone(): UseMicrophoneResult {
     recordStartAtRef.current = Date.now()
     elapsedMsRef.current = 0
     remainingMsRef.current = MAX_RECORDING_MS
-    setElapsedSeconds(0)
 
     // 10) 최대 녹음 제한 timeout 설정
     recordTimeoutRef.current = window.setTimeout(() => {
@@ -336,15 +339,17 @@ export function useMicrophone(): UseMicrophoneResult {
   }
 
   // ✅ recordedBlob 초기화(UI에서 “다시 녹음” 같은 흐름에 사용)
-  const clearRecordedBlob = () => {
+  const clearRecordedBlob = useCallback(() => {
     setRecordedBlob(null)
-  }
+    recordedBlobRef.current = null
+  }, [])
 
   // ✅ stop 후 Blob을 “반환” 받고 싶을 때 사용(비동기)
-  const stopRecordingAndGetBlob = async () => {
+  const stopRecordingAndGetBlob = useCallback(async () => {
     // ✅ recorder가 없거나 inactive면 이미 stop 상태 → 현재 recordedBlob 반환
-    if (!recorder || recorder.state === 'inactive') {
-      return recordedBlob
+    const currentRecorder = recorderRef.current
+    if (!currentRecorder || currentRecorder.state === 'inactive') {
+      return recordedBlobRef.current
     }
 
     // ✅ recorder.stop()은 onstop 이벤트가 async로 오므로 Promise로 감싼다
@@ -352,20 +357,39 @@ export function useMicrophone(): UseMicrophoneResult {
       stopResolveRef.current = resolve // onstop에서 resolve 호출
       stopRecording(false) // 실제 stop 수행
     })
-  }
+  }, [stopRecording])
 
-  // ✅ duration 계산: stop 시 recordedDurationSeconds가 있으면 그걸 사용, 없으면 elapsedSeconds
-  const getDurationSeconds = () =>
-    recordedDurationSeconds > 0 ? recordedDurationSeconds : elapsedSeconds
+  // ✅ 현재 경과 초 계산: 녹음 중이면 ref 기반으로 계산하고, stop 이후엔 확정 duration을 사용한다.
+  const getElapsedSeconds = useCallback(() => {
+    if (recordedDurationSecondsRef.current > 0) {
+      return recordedDurationSecondsRef.current
+    }
+
+    if (!isRecording || !recordStartAtRef.current) {
+      return Math.floor(Math.max(0, elapsedMsRef.current) / 1000)
+    }
+
+    const elapsedMs = elapsedMsRef.current + (Date.now() - recordStartAtRef.current)
+    return Math.floor(Math.max(0, elapsedMs) / 1000)
+  }, [isRecording])
+
+  const getDurationSeconds = useCallback(
+    () =>
+      recordedDurationSecondsRef.current > 0
+        ? recordedDurationSecondsRef.current
+        : getElapsedSeconds(),
+    [getElapsedSeconds],
+  )
 
   // ✅ autoStopped 플래그 초기화(컨트롤러에서 소비 후 reset)
-  const resetAutoStopped = () => setAutoStopped(false)
+  const resetAutoStopped = useCallback(() => {
+    setAutoStopped(false)
+  }, [])
 
   // ✅ 외부로 공개
   return {
     isRecording,
     isPaused,
-    elapsedSeconds,
     recordedDurationSeconds,
     micPermissionState,
     isMicAlertOpen,
@@ -375,6 +399,7 @@ export function useMicrophone(): UseMicrophoneResult {
     recordedBlob,
     startRecording,
     stopRecordingAndGetBlob,
+    getElapsedSeconds,
     getDurationSeconds,
     pauseRecording,
     resumeRecording,
