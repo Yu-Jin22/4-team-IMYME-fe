@@ -1,12 +1,17 @@
 'use client'
 
+import dynamic from 'next/dynamic'
+
 import {
-  CardNameModal,
   CategorySelectList,
   KeywordSelectList,
   useLevelUpStartController,
 } from '@/features/levelup'
 import { ModeHeader } from '@/shared'
+
+const loadCardNameModal = () => import('@/features/levelup').then((module) => module.CardNameModal)
+
+const CardNameModalLazy = dynamic(loadCardNameModal)
 
 export function LevelUpStartPage() {
   const {
@@ -49,14 +54,16 @@ export function LevelUpStartPage() {
           />
         )}
       </div>
-      <CardNameModal
-        open={isNameDialogOpen}
-        onOpenChange={handleDialogOpenChange}
-        selectedCategoryName={selectedCategory?.categoryName ?? null}
-        selectedKeywordName={selectedKeyword?.keywordName ?? null}
-        onCancel={handleCancelName}
-        onConfirm={handleConfirmCardName}
-      />
+      {isNameDialogOpen ? (
+        <CardNameModalLazy
+          open={isNameDialogOpen}
+          onOpenChange={handleDialogOpenChange}
+          selectedCategoryName={selectedCategory?.categoryName ?? null}
+          selectedKeywordName={selectedKeyword?.keywordName ?? null}
+          onCancel={handleCancelName}
+          onConfirm={handleConfirmCardName}
+        />
+      ) : null}
     </div>
   )
 }

@@ -1,6 +1,12 @@
 'use client'
 
-import { useCategoryList } from '../../filtering/model/useCategoryList'
+import { useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo, useRef } from 'react'
+import { toast } from 'sonner'
+
+import { getKeywordListQueryKey, getKeywords, useCategoryList } from '../../filtering'
+
+import { CategorySelectSkeleton } from './CategorySelectSkeleton'
 
 import type { CategoryItemType } from '@/entities/category'
 
@@ -11,30 +17,58 @@ type CategorySelectListProps = {
   variant?: 'default' | 'compact'
 }
 
+const KEYWORDS_PREFETCH_STALE_TIME_MS = 30 * 1000
+const CATEGORY_LIST_CLASSNAME =
+  'itmes-center grid min-h-0 w-full flex-1 grid-cols-2 place-items-center gap-6 overflow-y-scroll'
+const CATEGORY_LOAD_ERROR_TOAST_MESSAGE = '카테고리를 불러오지 못했습니다.'
+
 export function CategorySelectList({
   selectedCategoryId,
   onCategorySelectId,
   onClearKeyword,
   variant = 'default',
 }: CategorySelectListProps) {
+  const queryClient = useQueryClient()
+  const prefetchedCategoryIdsRef = useRef<Set<number>>(new Set())
+  const hasShownErrorToastRef = useRef(false)
   const { data, isLoading, error } = useCategoryList()
-  const categories: CategoryItemType[] = data ?? []
+  const categories: CategoryItemType[] = useMemo(() => data ?? [], [data])
   const buttonHeightClassName = variant === 'compact' ? 'h-20' : 'h-40'
 
-  if (isLoading) {
-    return <p>카테고리를 불러오는 중입니다.</p>
-  }
+  useEffect(() => {
+    if (categories.length === 0) return
 
-  if (error) {
-    return <p>카테고리를 불러오지 못했습니다.</p>
-  }
+    for (const category of categories) {
+      if (prefetchedCategoryIdsRef.current.has(category.id)) continue
+      prefetchedCategoryIdsRef.current.add(category.id)
 
-  if (categories.length === 0) {
-    return <p>카테고리 정보가 존재하지 않습니다.</p>
+      void queryClient.prefetchQuery({
+        queryKey: getKeywordListQueryKey(category.id),
+        queryFn: () => getKeywords(category.id),
+        staleTime: KEYWORDS_PREFETCH_STALE_TIME_MS,
+      })
+    }
+  }, [categories, queryClient])
+
+  useEffect(() => {
+    if (!error) {
+      hasShownErrorToastRef.current = false
+      return
+    }
+
+    if (hasShownErrorToastRef.current) return
+    hasShownErrorToastRef.current = true
+    toast.error(CATEGORY_LOAD_ERROR_TOAST_MESSAGE)
+  }, [error])
+
+  const shouldShowCategorySkeleton = isLoading || categories.length === 0 || Boolean(error)
+
+  if (shouldShowCategorySkeleton) {
+    return <CategorySelectSkeleton variant={variant} />
   }
 
   return (
-    <div className="itmes-center grid min-h-0 w-full flex-1 grid-cols-2 place-items-center gap-6 overflow-y-scroll">
+    <div className={CATEGORY_LIST_CLASSNAME}>
       {categories.map((category) => {
         const isSelected = selectedCategoryId === category.id
         const selectedClassName = isSelected ? 'border border-2 border-primary' : ''
