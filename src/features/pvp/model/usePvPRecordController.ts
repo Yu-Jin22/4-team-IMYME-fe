@@ -47,7 +47,7 @@ type UsePvPRecordControllerParams = {
 type UsePvPRecordControllerResult = {
   isRecording: boolean
   isPaused: boolean
-  elapsedSeconds: number
+  getElapsedSeconds: () => number
   recordedBlob: Blob | null
   // 현재 마이크 클릭 허용 여부
   isMicInteractionAllowed: boolean
@@ -80,7 +80,7 @@ export function usePvPRecordController({
     stopRecordingAndGetBlob,
     isRecording,
     isPaused,
-    elapsedSeconds,
+    getElapsedSeconds,
     recordedBlob,
     autoStopped,
     resetAutoStopped,
@@ -236,11 +236,11 @@ export function usePvPRecordController({
   return {
     isRecording,
     isPaused,
-    elapsedSeconds,
     recordedBlob,
     isMicInteractionAllowed,
     isSubmittingSubmission,
     isSubmissionCompleted,
+    getElapsedSeconds,
     // 소켓 self ANSWER_SUBMITTED 수신 시 로컬 완료 상태를 동기화한다.
     markSubmissionCompleted: () => {
       setIsSubmissionCompleted(true)
