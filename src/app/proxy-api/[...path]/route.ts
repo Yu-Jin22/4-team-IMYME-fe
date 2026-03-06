@@ -9,6 +9,14 @@ const FORWARDED_HEADER_KEYS = ['content-type', 'accept'] as const
 const NO_BODY_STATUS_CODES = new Set([204, 205, 304])
 const CACHE_CONTROL_HEADER = 'cache-control'
 const PRIVATE_REVALIDATE_CACHE_CONTROL = 'private, max-age=0, must-revalidate'
+const SSE_CONTENT_TYPE = 'text/event-stream'
+const SSE_CACHE_CONTROL = 'no-cache, no-transform'
+const SSE_BUFFERING_HEADER_KEY = 'x-accel-buffering'
+const SSE_BUFFERING_DISABLED = 'no'
+
+// 업스트림이 SSE 응답인지 판별해 버퍼링 없는 패스스루 분기를 탄다.
+const shouldTreatAsSse = (contentType: string | null) =>
+  contentType?.toLowerCase().includes(SSE_CONTENT_TYPE) ?? false
 
 const buildBackendUrl = (pathSegments: string[], searchParams: URLSearchParams) => {
   const normalizedBaseUrl = BACKEND_BASE_URL.replace(/\/$/, '')
@@ -45,8 +53,10 @@ const createProxyResponse = async (request: NextRequest, pathSegments: string[])
     }
   })
 
-  const requestBody = await request.arrayBuffer()
-  const hasRequestBody = requestBody.byteLength > EMPTY_BODY_SIZE
+  // GET/HEAD는 body를 사용하지 않으므로 불필요한 body read를 피한다.
+  const allowsBody = request.method !== 'GET' && request.method !== 'HEAD'
+  const requestBody = allowsBody ? await request.arrayBuffer() : null
+  const hasRequestBody = requestBody ? requestBody.byteLength > EMPTY_BODY_SIZE : false
   const upstreamResponse = await fetch(
     buildBackendUrl(pathSegments, request.nextUrl.searchParams),
     {
@@ -57,14 +67,31 @@ const createProxyResponse = async (request: NextRequest, pathSegments: string[])
   )
 
   const responseHeaders = new Headers()
-  responseHeaders.set(CACHE_CONTROL_HEADER, PRIVATE_REVALIDATE_CACHE_CONTROL)
   const contentType = upstreamResponse.headers.get('content-type')
+  const isSseResponse = shouldTreatAsSse(contentType)
+
+  if (isSseResponse) {
+    // SSE는 중간 버퍼링이 있으면 실시간성이 깨져서 no-transform/no-buffering이 필요하다.
+    responseHeaders.set(CACHE_CONTROL_HEADER, SSE_CACHE_CONTROL)
+    responseHeaders.set(SSE_BUFFERING_HEADER_KEY, SSE_BUFFERING_DISABLED)
+  } else {
+    responseHeaders.set(CACHE_CONTROL_HEADER, PRIVATE_REVALIDATE_CACHE_CONTROL)
+  }
+
   if (contentType) {
     responseHeaders.set('content-type', contentType)
   }
 
   if (NO_BODY_STATUS_CODES.has(upstreamResponse.status)) {
     return new NextResponse(null, {
+      status: upstreamResponse.status,
+      headers: responseHeaders,
+    })
+  }
+
+  if (isSseResponse) {
+    // SSE는 전체 응답을 미리 읽지 않고 ReadableStream 그대로 전달해야 한다.
+    return new NextResponse(upstreamResponse.body, {
       status: upstreamResponse.status,
       headers: responseHeaders,
     })

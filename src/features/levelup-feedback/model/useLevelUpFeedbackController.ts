@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
-import { useCardDetails, useFeedbackPolling } from '@/features/levelup-feedback'
+import { useCardDetails, useFeedbackStream } from '@/features/levelup-feedback'
 
 const FAILED_REDIRECT_DELAY_MS = 3000
 const MAX_ATTEMPTS = 5
@@ -64,7 +64,8 @@ export function useLevelUpFeedbackController({
     }, FAILED_REDIRECT_DELAY_MS)
   }, [router])
 
-  const { status, processingStep, feedbackData } = useFeedbackPolling({
+  // 기존 polling 훅 대신 SSE 기반 훅으로 상태/step/결과 데이터를 수신한다.
+  const { status, processingStep, feedbackData } = useFeedbackStream({
     cardId,
     attemptId,
     onTimeout: handleTimeout,
