@@ -13,3 +13,4 @@ export type { FeedbackItem, FeedbackProcessingStep, FeedbackStatus } from './mod
 export { PROCESSING_STEPS } from './model/feedbackTypes'
 export { useFeedbackPolling } from './model/useFeedbackPolling'
 export { useLevelUpFeedbackController } from './model/useLevelUpFeedbackController'
+export { getInitialCardDetails } from './server/getInitialCardDetails'

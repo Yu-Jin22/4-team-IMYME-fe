@@ -18,7 +18,6 @@ type CategorySelectListProps = {
   variant?: 'default' | 'compact'
 }
 
-const KEYWORDS_PREFETCH_STALE_TIME_MS = 30 * 1000
 const CATEGORY_LIST_CLASSNAME =
   'itmes-center grid min-h-0 w-full flex-1 grid-cols-2 place-items-center gap-6 overflow-y-scroll'
 const CATEGORY_LOAD_ERROR_TOAST_MESSAGE = '카테고리를 불러오지 못했습니다.'
@@ -31,26 +30,10 @@ export function CategorySelectList({
   variant = 'default',
 }: CategorySelectListProps) {
   const queryClient = useQueryClient()
-  const prefetchedCategoryIdsRef = useRef<Set<number>>(new Set())
   const hasShownErrorToastRef = useRef(false)
   const { data, isLoading, error } = useCategoryList({ initialData: initialCategories })
   const categories: CategoryItemType[] = useMemo(() => data ?? [], [data])
   const buttonHeightClassName = variant === 'compact' ? 'h-20' : 'h-40'
-
-  useEffect(() => {
-    if (categories.length === 0) return
-
-    for (const category of categories) {
-      if (prefetchedCategoryIdsRef.current.has(category.id)) continue
-      prefetchedCategoryIdsRef.current.add(category.id)
-
-      void queryClient.prefetchQuery({
-        queryKey: getKeywordListQueryKey(category.id),
-        queryFn: () => getKeywords(category.id),
-        staleTime: KEYWORDS_PREFETCH_STALE_TIME_MS,
-      })
-    }
-  }, [categories, queryClient])
 
   useEffect(() => {
     if (!error) {
@@ -80,6 +63,11 @@ export function CategorySelectList({
             key={category.id}
             type="button"
             onClick={() => {
+              void queryClient.prefetchQuery({
+                queryKey: getKeywordListQueryKey(category.id),
+                queryFn: () => getKeywords(category.id),
+                staleTime: 3600000,
+              })
               onCategorySelectId(category)
               if (onClearKeyword) onClearKeyword()
             }}

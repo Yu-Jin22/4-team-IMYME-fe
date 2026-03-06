@@ -15,5 +15,6 @@ export function useCategoryList({ initialData = [] }: UseCategoryListOptions = {
     queryKey: ['categories'],
     queryFn: () => getCategories(),
     initialData,
+    staleTime: 3600000,
   })
 }
