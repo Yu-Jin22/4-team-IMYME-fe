@@ -6,6 +6,9 @@ import { ACCESS_TOKEN_COOKIE } from '@/features/auth/server'
 const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
 const EMPTY_BODY_SIZE = 0
 const FORWARDED_HEADER_KEYS = ['content-type', 'accept'] as const
+const NO_BODY_STATUS_CODES = new Set([204, 205, 304])
+const CACHE_CONTROL_HEADER = 'cache-control'
+const PRIVATE_REVALIDATE_CACHE_CONTROL = 'private, max-age=0, must-revalidate'
 
 const buildBackendUrl = (pathSegments: string[], searchParams: URLSearchParams) => {
   const normalizedBaseUrl = BACKEND_BASE_URL.replace(/\/$/, '')
@@ -21,7 +24,15 @@ const createProxyResponse = async (request: NextRequest, pathSegments: string[])
   const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value ?? ''
 
   if (!accessToken) {
-    return NextResponse.json({ error: 'missing_access_token' }, { status: 401 })
+    return NextResponse.json(
+      { error: 'missing_access_token' },
+      {
+        status: 401,
+        headers: {
+          [CACHE_CONTROL_HEADER]: PRIVATE_REVALIDATE_CACHE_CONTROL,
+        },
+      },
+    )
   }
 
   const upstreamHeaders = new Headers()
@@ -42,14 +53,21 @@ const createProxyResponse = async (request: NextRequest, pathSegments: string[])
       method: request.method,
       headers: upstreamHeaders,
       body: hasRequestBody ? requestBody : undefined,
-      cache: 'no-store',
     },
   )
 
   const responseHeaders = new Headers()
+  responseHeaders.set(CACHE_CONTROL_HEADER, PRIVATE_REVALIDATE_CACHE_CONTROL)
   const contentType = upstreamResponse.headers.get('content-type')
   if (contentType) {
     responseHeaders.set('content-type', contentType)
+  }
+
+  if (NO_BODY_STATUS_CODES.has(upstreamResponse.status)) {
+    return new NextResponse(null, {
+      status: upstreamResponse.status,
+      headers: responseHeaders,
+    })
   }
 
   const responseBody = await upstreamResponse.arrayBuffer()

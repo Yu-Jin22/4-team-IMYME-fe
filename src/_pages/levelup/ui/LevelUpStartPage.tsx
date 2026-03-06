@@ -1,14 +1,25 @@
 'use client'
 
+import dynamic from 'next/dynamic'
+
 import {
-  CardNameModal,
   CategorySelectList,
   KeywordSelectList,
   useLevelUpStartController,
 } from '@/features/levelup'
 import { ModeHeader } from '@/shared'
 
-export function LevelUpStartPage() {
+import type { CategoryItemType } from '@/entities/category'
+
+const loadCardNameModal = () => import('@/features/levelup').then((module) => module.CardNameModal)
+
+const CardNameModalLazy = dynamic(loadCardNameModal)
+
+type LevelUpStartPageProps = {
+  initialCategories?: CategoryItemType[]
+}
+
+export function LevelUpStartPage({ initialCategories }: LevelUpStartPageProps) {
   const {
     selectedCategory,
     selectedKeyword,
@@ -43,20 +54,23 @@ export function LevelUpStartPage() {
           />
         ) : (
           <CategorySelectList
+            initialCategories={initialCategories}
             selectedCategoryId={selectedCategory ? selectedCategory.id : null}
             onCategorySelectId={setSelectedCategory}
             onClearKeyword={clearKeyword}
           />
         )}
       </div>
-      <CardNameModal
-        open={isNameDialogOpen}
-        onOpenChange={handleDialogOpenChange}
-        selectedCategoryName={selectedCategory?.categoryName ?? null}
-        selectedKeywordName={selectedKeyword?.keywordName ?? null}
-        onCancel={handleCancelName}
-        onConfirm={handleConfirmCardName}
-      />
+      {isNameDialogOpen ? (
+        <CardNameModalLazy
+          open={isNameDialogOpen}
+          onOpenChange={handleDialogOpenChange}
+          selectedCategoryName={selectedCategory?.categoryName ?? null}
+          selectedKeywordName={selectedKeyword?.keywordName ?? null}
+          onCancel={handleCancelName}
+          onConfirm={handleConfirmCardName}
+        />
+      ) : null}
     </div>
   )
 }

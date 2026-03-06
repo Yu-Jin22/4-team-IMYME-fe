@@ -20,7 +20,7 @@ const buttonVariants = cva(
         modal_btn_primary:
           'h-[50px] w-[250px] border border-[rgb(var(--color-primary))] bg-[rgb(var(--color-background))] text-[rgb(var(--color-primary))] hover:bg-primary hover:text-[rgb(var(--color-primary-foreground))] active:bg-primary active:text-[rgb(var(--color-primary-foreground))]',
         mode_btn_primary:
-          'inline-flex min-h-[120px] min-w-[350px] cursor-pointer items-center justify-evenly self-center gap-2 border border-[rgb(var(--color-primary))] bg-white text-[rgb(var(--color-primary))]',
+          'inline-flex min-h-[120px] min-w-[350px] cursor-pointer items-center justify-evenly self-center gap-2 border border-[rgb(var(--color-primary))] bg-white text-[rgb(var(--color-primary))] shadow-[0_-2px_1px_rgba(255,255,255,1),0_2px_1px_rgba(0,0,0,0.1)]',
         see_more:
           'bg-background max-w-8 max-h-4 text-sm text-black/50 ml-auto mr-10 cursor-pointer',
         filter_btn: 'w-full bg-secondary text-primary  border-primary cursor-pointer',

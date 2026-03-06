@@ -4,10 +4,12 @@ import { useSearchParams } from 'next/navigation'
 import { memo } from 'react'
 
 import { useCardDetails } from '@/features/levelup-feedback'
-import { MicrophoneBox, useLevelUpRecordController } from '@/features/record'
+import { MicrophoneBox, MicrophoneBoxSkeleton, useLevelUpRecordController } from '@/features/record'
 import { AlertModal, Button, ModeHeader, RecordTipBox, StatusLoader, SubjectHeader } from '@/shared'
 
 import { useLevelUpRecordExitGuard } from '../model/useLevelUpRecordExitGuard'
+
+import type { CardDetails } from '@/features/levelup-feedback'
 
 const RECORD_PROGRESS_VALUE = 100
 const RECORD_STEP_LABEL = '3/3'
@@ -22,6 +24,10 @@ function parseOptionalNumber(value: string | null): number | undefined {
 
   const parsedValue = Number(value)
   return Number.isNaN(parsedValue) ? undefined : parsedValue
+}
+
+type LevelUpRecordPageProps = {
+  initialCardDetails?: CardDetails | null
 }
 
 const RecordSubmitButton = memo(function RecordSubmitButton({
@@ -41,12 +47,13 @@ const RecordSubmitButton = memo(function RecordSubmitButton({
   )
 })
 
-export function LevelUpRecordPage() {
+export function LevelUpRecordPage({ initialCardDetails }: LevelUpRecordPageProps) {
   const searchParams = useSearchParams()
   const cardId = parseOptionalNumber(searchParams.get('cardId'))
   const attemptId = parseOptionalNumber(searchParams.get('attemptId'))
   const attemptNo = parseOptionalNumber(searchParams.get('attemptNo'))
-  const { data } = useCardDetails(cardId)
+  const cardDetailsQuery = useCardDetails(cardId, { initialData: initialCardDetails })
+  const { data } = cardDetailsQuery
 
   const {
     isSubmittingFeedback,
@@ -68,6 +75,7 @@ export function LevelUpRecordPage() {
   })
   const { isBackAlertOpen, handleBackConfirm, handleBackCancel, handleBackAlertOpenChange } =
     useLevelUpRecordExitGuard()
+  const shouldShowMicrophoneSkeleton = cardDetailsQuery.isLoading
 
   return (
     <div className="flex h-full w-full flex-1 flex-col">
@@ -85,6 +93,8 @@ export function LevelUpRecordPage() {
       />
       {isSubmittingFeedback || uploadStatus === 'PENDING' ? (
         <StatusLoader status="PENDING" />
+      ) : shouldShowMicrophoneSkeleton ? (
+        <MicrophoneBoxSkeleton />
       ) : (
         <MicrophoneBox
           isStartingWarmup={isStartingWarmup}
