@@ -11,6 +11,7 @@ import { CategorySelectSkeleton } from './CategorySelectSkeleton'
 import type { CategoryItemType } from '@/entities/category'
 
 type CategorySelectListProps = {
+  initialCategories?: CategoryItemType[]
   selectedCategoryId: number | null
   onCategorySelectId: (category: CategoryItemType) => void
   onClearKeyword?: () => void
@@ -23,6 +24,7 @@ const CATEGORY_LIST_CLASSNAME =
 const CATEGORY_LOAD_ERROR_TOAST_MESSAGE = '카테고리를 불러오지 못했습니다.'
 
 export function CategorySelectList({
+  initialCategories,
   selectedCategoryId,
   onCategorySelectId,
   onClearKeyword,
@@ -31,7 +33,7 @@ export function CategorySelectList({
   const queryClient = useQueryClient()
   const prefetchedCategoryIdsRef = useRef<Set<number>>(new Set())
   const hasShownErrorToastRef = useRef(false)
-  const { data, isLoading, error } = useCategoryList()
+  const { data, isLoading, error } = useCategoryList({ initialData: initialCategories })
   const categories: CategoryItemType[] = useMemo(() => data ?? [], [data])
   const buttonHeightClassName = variant === 'compact' ? 'h-20' : 'h-40'
 

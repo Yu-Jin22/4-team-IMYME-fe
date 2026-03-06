@@ -9,11 +9,17 @@ import {
 } from '@/features/levelup'
 import { ModeHeader } from '@/shared'
 
+import type { CategoryItemType } from '@/entities/category'
+
 const loadCardNameModal = () => import('@/features/levelup').then((module) => module.CardNameModal)
 
 const CardNameModalLazy = dynamic(loadCardNameModal)
 
-export function LevelUpStartPage() {
+type LevelUpStartPageProps = {
+  initialCategories?: CategoryItemType[]
+}
+
+export function LevelUpStartPage({ initialCategories }: LevelUpStartPageProps) {
   const {
     selectedCategory,
     selectedKeyword,
@@ -48,6 +54,7 @@ export function LevelUpStartPage() {
           />
         ) : (
           <CategorySelectList
+            initialCategories={initialCategories}
             selectedCategoryId={selectedCategory ? selectedCategory.id : null}
             onCategorySelectId={setSelectedCategory}
             onClearKeyword={clearKeyword}
