@@ -10,6 +10,7 @@ import type { FeedbackItem, FeedbackProcessingStep, FeedbackStatus } from './fee
 
 const FEEDBACK_TIMEOUT_MS = 5 * 60 * 1000
 const DEFAULT_FEEDBACK_STATUS: FeedbackStatus = 'PROCESSING'
+const TERMINAL_FEEDBACK_STATUSES: FeedbackStatus[] = ['COMPLETED', 'FAILED', 'EXPIRED']
 
 type UseFeedbackStreamOptions = {
   cardId?: number
@@ -56,32 +57,35 @@ export function useFeedbackStream({
   const [processingStep, setProcessingStep] = useState<FeedbackProcessingStep | null>(null)
   const [feedbackData, setFeedbackData] = useState<FeedbackItem[]>([])
 
-  const hasCompletedFeedback = status === 'COMPLETED' && feedbackData.length > 0
+  const isTerminalStatus = TERMINAL_FEEDBACK_STATUSES.includes(status)
 
   useEffect(() => {
-    // 필수 식별자가 없거나 이미 완료 데이터가 있으면 재연결하지 않는다.
-    if (!cardId || !attemptId || hasCompletedFeedback) return
+    // 필수 식별자가 없거나 종료 상태면 같은 토큰으로 재연결하지 않는다.
+    if (!cardId || !attemptId || isTerminalStatus) return
 
-    let isActive = true
+    let isCancelled = false
+    let isClosedByClient = false
     let timeoutId: number | null = null
     let eventSource: EventSource | null = null
 
-    const stopStream = () => {
-      // 중복 정리를 막아 onFailed/onTimeout이 여러 번 호출되는 것을 방지
-      if (!isActive) return
-      isActive = false
+    const closeStream = () => {
+      // onerror에서 의도치 않은 실패 처리로 이어지지 않도록 클라이언트 종료 플래그를 먼저 올린다.
+      isClosedByClient = true
       if (timeoutId) {
         window.clearTimeout(timeoutId)
       }
       if (eventSource) {
+        eventSource.onmessage = null
+        eventSource.onerror = null
         eventSource.close()
+        eventSource = null
       }
     }
 
     const handleCompleted = async () => {
       // COMPLETED 이벤트는 요약 신호이므로, 최종 상세 데이터는 1회 재조회한다.
       const details = await getAttemptDetails(cardId, attemptId)
-      if (!isActive || !details) return
+      if (isCancelled || !details) return
 
       setStatus('COMPLETED')
       setProcessingStep(null)
@@ -91,9 +95,9 @@ export function useFeedbackStream({
     const startStream = async () => {
       // 1) 스트림 토큰 발급
       const tokenResult = await createAttemptStreamToken(cardId, attemptId)
-      if (!isActive) return
+      if (isCancelled) return
       if (!tokenResult.ok) {
-        stopStream()
+        closeStream()
         void onFailed?.()
         return
       }
@@ -107,7 +111,7 @@ export function useFeedbackStream({
         },
         {
           onMessage: (payload) => {
-            if (!isActive) return
+            if (isCancelled) return
 
             // 서버 상태를 그대로 UI 상태로 반영한다.
             setStatus(payload.status)
@@ -119,34 +123,33 @@ export function useFeedbackStream({
 
             // 완료/실패/만료는 즉시 스트림을 닫고 후속 처리를 실행한다.
             if (payload.status === 'COMPLETED') {
-              stopStream()
+              closeStream()
               void handleCompleted()
+              return
             }
 
             if (payload.status === 'FAILED') {
-              stopStream()
+              closeStream()
               void onFailed?.()
+              return
             }
 
             if (payload.status === 'EXPIRED') {
-              stopStream()
+              closeStream()
               void onTimeout?.()
+              return
             }
           },
           onError: () => {
-            // CLOSED가 아닌 일시적 오류는 재연결 가능 상태일 수 있어 무시한다.
-            if (!isActive) return
-            if (!eventSource) return
-            if (eventSource.readyState !== EventSource.CLOSED) return
-
-            stopStream()
+            if (isCancelled || isClosedByClient) return
+            closeStream()
             void onFailed?.()
           },
         },
       )
 
       if (!streamResult.ok) {
-        stopStream()
+        closeStream()
         void onFailed?.()
         return
       }
@@ -156,16 +159,17 @@ export function useFeedbackStream({
 
     timeoutId = window.setTimeout(() => {
       // 서버 이벤트가 오지 않아도 무한 대기를 막기 위해 클라이언트 타임아웃을 둔다.
-      stopStream()
+      closeStream()
       void onTimeout?.()
     }, FEEDBACK_TIMEOUT_MS)
 
     void startStream()
 
     return () => {
-      stopStream()
+      isCancelled = true
+      closeStream()
     }
-  }, [attemptId, cardId, hasCompletedFeedback, onFailed, onTimeout])
+  }, [attemptId, cardId, isTerminalStatus, onFailed, onTimeout])
 
   return { status, processingStep, feedbackData }
 }
