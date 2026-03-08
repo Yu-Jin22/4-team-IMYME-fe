@@ -9,6 +9,8 @@ import { getAttemptStream } from '../api/getAttemptStream'
 import type { FeedbackItem, FeedbackProcessingStep, FeedbackStatus } from './feedbackTypes'
 
 const FEEDBACK_TIMEOUT_MS = 5 * 60 * 1000
+const COMPLETED_FEEDBACK_FETCH_RETRY_DELAY_MS = 1000
+const COMPLETED_FEEDBACK_FETCH_MAX_RETRIES = 5
 const DEFAULT_FEEDBACK_STATUS: FeedbackStatus = 'PROCESSING'
 const TERMINAL_FEEDBACK_STATUSES: FeedbackStatus[] = ['COMPLETED', 'FAILED', 'EXPIRED']
 
@@ -46,6 +48,11 @@ const mapFeedbackItem = (
   ]
 }
 
+const delay = (ms: number) =>
+  new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+
 export function useFeedbackStream({
   cardId,
   attemptId,
@@ -65,6 +72,7 @@ export function useFeedbackStream({
 
     let isCancelled = false
     let isClosedByClient = false
+    let hasReceivedTerminalEvent = false
     let timeoutId: number | null = null
     let eventSource: EventSource | null = null
 
@@ -83,13 +91,23 @@ export function useFeedbackStream({
     }
 
     const handleCompleted = async () => {
-      // COMPLETED 이벤트는 요약 신호이므로, 최종 상세 데이터는 1회 재조회한다.
-      const details = await getAttemptDetails(cardId, attemptId)
-      if (isCancelled || !details) return
+      // COMPLETED 직후 백엔드 저장 반영이 늦을 수 있어, 상세 피드백 조회를 짧게 재시도한다.
+      for (let retryCount = 0; retryCount < COMPLETED_FEEDBACK_FETCH_MAX_RETRIES; retryCount += 1) {
+        const details = await getAttemptDetails(cardId, attemptId)
+        if (isCancelled) return
 
-      setStatus('COMPLETED')
-      setProcessingStep(null)
-      setFeedbackData(mapFeedbackItem(details))
+        if (details?.feedback) {
+          setStatus('COMPLETED')
+          setProcessingStep(null)
+          setFeedbackData(mapFeedbackItem(details))
+          return
+        }
+
+        await delay(COMPLETED_FEEDBACK_FETCH_RETRY_DELAY_MS)
+      }
+
+      // COMPLETED 후에도 피드백 상세를 가져오지 못하면 실패 처리로 전환한다.
+      void onFailed?.()
     }
 
     const startStream = async () => {
@@ -113,35 +131,39 @@ export function useFeedbackStream({
           onMessage: (payload) => {
             if (isCancelled) return
 
-            // 서버 상태를 그대로 UI 상태로 반영한다.
-            setStatus(payload.status)
-            if (payload.status === 'PROCESSING' && payload.step) {
-              setProcessingStep(payload.step)
-            } else {
-              setProcessingStep(null)
-            }
-
             // 완료/실패/만료는 즉시 스트림을 닫고 후속 처리를 실행한다.
             if (payload.status === 'COMPLETED') {
+              hasReceivedTerminalEvent = true
               closeStream()
               void handleCompleted()
               return
             }
 
             if (payload.status === 'FAILED') {
+              hasReceivedTerminalEvent = true
               closeStream()
               void onFailed?.()
               return
             }
 
             if (payload.status === 'EXPIRED') {
+              hasReceivedTerminalEvent = true
               closeStream()
               void onTimeout?.()
               return
             }
+
+            // 종료 이벤트가 아니면 서버 상태를 그대로 UI 상태로 반영한다.
+            setStatus(payload.status)
+            if (payload.status === 'PROCESSING' && payload.step) {
+              setProcessingStep(payload.step)
+            } else {
+              setProcessingStep(null)
+            }
           },
           onError: () => {
-            if (isCancelled || isClosedByClient) return
+            // 서버가 종료 이벤트를 보낸 뒤 닫은 연결은 정상 흐름으로 본다.
+            if (isCancelled || isClosedByClient || hasReceivedTerminalEvent) return
             closeStream()
             void onFailed?.()
           },

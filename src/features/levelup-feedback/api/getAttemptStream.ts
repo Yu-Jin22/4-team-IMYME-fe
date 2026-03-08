@@ -24,6 +24,7 @@ export type GetAttemptStreamResult =
 
 const INVALID_PARAMS_REASON = 'invalid_params'
 const PARSE_FAILED_REASON = 'parse_failed'
+const SSE_STATUS_UPDATE_EVENT_NAME = 'status-update'
 
 const isFeedbackStatus = (value: unknown): value is FeedbackStatus =>
   value === 'PENDING' ||
@@ -78,7 +79,7 @@ export function getAttemptStream(
   // EventSource는 브라우저 표준 SSE 클라이언트
   const eventSource = new EventSource(createAttemptStreamUrl(params))
 
-  eventSource.onmessage = (event) => {
+  const handleSseMessage = (event: MessageEvent<string>) => {
     try {
       const parsedPayload = parseAttemptStreamPayload(JSON.parse(event.data))
       if (!parsedPayload.ok) {
@@ -91,6 +92,10 @@ export function getAttemptStream(
       console.error('Failed to parse attempt stream event', error)
     }
   }
+
+  // 기본 message 이벤트와 커스텀 status-update 이벤트를 모두 수신한다.
+  eventSource.onmessage = handleSseMessage
+  eventSource.addEventListener(SSE_STATUS_UPDATE_EVENT_NAME, handleSseMessage)
 
   if (onError) {
     // 연결 끊김/네트워크 오류 처리 전략은 상위 훅(useFeedbackStream)에서 관리
