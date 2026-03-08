@@ -9,6 +9,7 @@ import { useCardDetails, useFeedbackStream } from '@/features/levelup-feedback'
 
 const FAILED_REDIRECT_DELAY_MS = 3000
 const MAX_ATTEMPTS = 5
+const MAIN_PAGE_PATH = '/main'
 
 type LevelUpFeedbackControllerDeps = {
   createAttempt: (
@@ -28,7 +29,6 @@ export function useLevelUpFeedbackController({
 }: LevelUpFeedbackControllerDeps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [isExitAlertOpen, setIsExitAlertOpen] = useState(false)
   const [isCreatingAttempt, setIsCreatingAttempt] = useState(false)
   const cardId = Number(searchParams.get('cardId') ?? '')
   const attemptId = Number(searchParams.get('attemptId') ?? '')
@@ -54,13 +54,13 @@ export function useLevelUpFeedbackController({
     } catch {
       toast.error('삭제에 실패했습니다. 다시 시도해주세요.')
     }
-    router.push('/main')
+    router.push(MAIN_PAGE_PATH)
   }, [deleteAttemptMutation, router])
 
   const handleFailed = useCallback(() => {
     toast.error('피드백 생성에 실패했습니다. 다시 시도해주세요.')
     window.setTimeout(() => {
-      router.push('/main')
+      router.push(MAIN_PAGE_PATH)
     }, FAILED_REDIRECT_DELAY_MS)
   }, [router])
 
@@ -76,9 +76,7 @@ export function useLevelUpFeedbackController({
   const remainingAttempts =
     feedbackData.length > 0 ? Math.max(0, MAX_ATTEMPTS - feedbackAttemptNo) : '-'
 
-  const handleBack = () => {
-    setIsExitAlertOpen(true)
-  }
+  const handleBack = () => router.push(MAIN_PAGE_PATH)
 
   const handleRestudyClick = async () => {
     if (!cardId) {
@@ -105,27 +103,11 @@ export function useLevelUpFeedbackController({
     )
   }
 
-  const handleExitConfirm = async () => {
-    if (feedbackData.length === 0) {
-      try {
-        await deleteAttemptMutation.mutateAsync()
-      } catch {
-        toast.error('삭제에 실패했습니다. 다시 시도해주세요.')
-        return
-      }
-    }
-    router.push('/main')
-  }
-
-  const handleExitCancel = () => {
-    setIsExitAlertOpen(false)
-  }
-
   const handleEndLearning = () => {
     if (status === 'COMPLETED') {
       onIncreaseActiveCardCount()
     }
-    router.replace('/main')
+    router.replace(MAIN_PAGE_PATH)
   }
 
   const isRestudyDisabled = remainingAttempts === 0 || isCreatingAttempt
@@ -136,13 +118,9 @@ export function useLevelUpFeedbackController({
     processingStep,
     feedbackData,
     remainingAttempts,
-    isExitAlertOpen,
-    setIsExitAlertOpen,
     isRestudyDisabled,
     handleBack,
     handleRestudyClick,
     handleEndLearning,
-    handleExitConfirm,
-    handleExitCancel,
   }
 }
