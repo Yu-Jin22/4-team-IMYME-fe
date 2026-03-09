@@ -14,7 +14,7 @@ export function ChallengeRankingCard() {
   const router = useRouter()
 
   const handleClickRankingSeeMore = () => {
-    router.push('/ranking')
+    router.push('/challenge/ranking')
   }
 
   return (

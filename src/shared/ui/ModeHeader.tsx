@@ -10,7 +10,7 @@ type PvPStep =
   | 'battle'
   | 'recording'
   | 'feedback'
-type ChallengeStep = 'waiting' | 'recording' | 'submitted'
+type ChallengeStep = 'waiting' | 'recording' | 'submitted' | 'ranking'
 
 type ModeHeaderProps =
   | {
@@ -63,6 +63,7 @@ const PVP_SUBTITLE_BY_STEP: Record<PvPStep, string> = {
 
 const CHALLENGE_SUBTITLE_BY_STEP: Record<ChallengeStep, string> = {
   waiting: '도전 대기',
+  ranking: '어제의 랭킹',
   recording: '',
   submitted: '',
 }
