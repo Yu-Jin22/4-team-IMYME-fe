@@ -10,11 +10,14 @@ type UseCategoryListOptions = {
   initialData?: CategoryItemType[]
 }
 
-export function useCategoryList({ initialData = [] }: UseCategoryListOptions = {}) {
+export function useCategoryList({ initialData }: UseCategoryListOptions = {}) {
+  // 빈 배열은 "초기 성공 데이터"로 고정되면 재요청을 막을 수 있어 시드로 사용하지 않는다.
+  const hasInitialCategoryData = Boolean(initialData && initialData.length > 0)
+
   return useQuery<CategoryItemType[]>({
     queryKey: ['categories'],
     queryFn: () => getCategories(),
-    initialData,
+    ...(hasInitialCategoryData ? { initialData } : {}),
     staleTime: 3600000,
   })
 }
