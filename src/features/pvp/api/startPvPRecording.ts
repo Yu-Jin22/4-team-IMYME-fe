@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 import type { PvPRoomDetails } from '@/entities/room'
 
@@ -13,19 +13,11 @@ export type StartPvPRecordingResult =
   | { ok: true; data: PvPRoomDetails }
   | { ok: false; reason: string }
 
-export async function startPvPRecording(
-  accessToken: string,
-  roomId: number,
-): Promise<StartPvPRecordingResult> {
+export async function startPvPRecording(roomId: number): Promise<StartPvPRecordingResult> {
   try {
-    const response = await httpClient.post<StartPvPRecordingResponse>(
-      `/pvp/rooms/${roomId}/start-recording`,
+    const response = await proxyApiClient.post<StartPvPRecordingResponse>(
+      `/proxy-api/pvp/rooms/${roomId}/start-recording`,
       null,
-      {
-        headers: {
-          Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-        },
-      },
     )
 
     const roomDetails = response.data?.data

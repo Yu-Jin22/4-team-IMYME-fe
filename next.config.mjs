@@ -15,9 +15,6 @@ const nextConfig = {
   output: 'standalone',
   ...(customDistDir ? { distDir: customDistDir } : {}),
   productionBrowserSourceMaps: true,
-  experimental: {
-    trustHostHeader: true,
-  },
   images: {
     dangerouslyAllowLocalIP: true,
     formats: ['image/avif', 'image/webp'],

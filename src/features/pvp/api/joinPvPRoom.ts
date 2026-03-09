@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 import type { PvPRoomDetails } from '@/entities/room'
 
@@ -11,13 +11,12 @@ type JoinPvPRoomResponse = {
 
 export type JoinPvPRoomResult = { ok: true; data: PvPRoomDetails } | { ok: false; reason: string }
 
-export async function joinPvPRoom(accessToken: string, roomId: number): Promise<JoinPvPRoomResult> {
+export async function joinPvPRoom(roomId: number): Promise<JoinPvPRoomResult> {
   try {
-    const response = await httpClient.post<JoinPvPRoomResponse>(`/pvp/rooms/${roomId}/join`, null, {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
-    })
+    const response = await proxyApiClient.post<JoinPvPRoomResponse>(
+      `/proxy-api/pvp/rooms/${roomId}/join`,
+      null,
+    )
 
     const roomDetails = response.data?.data
     if (!roomDetails) {

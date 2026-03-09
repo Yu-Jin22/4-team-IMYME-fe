@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { CategoryItemType } from '@/entities/category'
 import { KeywordItemType } from '@/entities/keyword'
 import { PvPCard } from '@/entities/pvp-card'
-import { useAccessToken } from '@/features/auth'
 import { useMyPvPCardList } from '@/features/my-pvp-card'
 import { StatusMessage } from '@/shared'
 
@@ -25,9 +24,8 @@ type MyPvPCardListProps = {
 }
 export function MyPvPCardList({ selectedCategory, selectedKeyword }: MyPvPCardListProps) {
   const router = useRouter()
-  const accessToken = useAccessToken()
   const hasFilteringCondition = Boolean(selectedCategory) || Boolean(selectedKeyword)
-  const myPvPCardListQuery = useMyPvPCardList(accessToken, {
+  const myPvPCardListQuery = useMyPvPCardList({
     ...(selectedCategory ? { categoryId: selectedCategory.id } : {}),
     ...(selectedKeyword ? { keywordId: selectedKeyword.id } : {}),
   })
@@ -56,7 +54,6 @@ export function MyPvPCardList({ selectedCategory, selectedKeyword }: MyPvPCardLi
         <PvPCard
           key={history.historyId}
           historyId={history.historyId}
-          accessToken={accessToken}
           title={history.room.name}
           resultVariant={history.myResult.isWinner ? 'win' : 'lose'}
           categoryName={history.category.name}

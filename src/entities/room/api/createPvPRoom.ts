@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 type PvPRoomStatus =
   | 'OPEN'
@@ -83,16 +83,12 @@ export type CreatePvPRoomResult =
   | { ok: false; error: 'FORBIDDEN_WORD'; message: string }
   | { ok: false; error: 'UNKNOWN'; message: string }
 
-export async function createPvPRoom(
-  accessToken: string,
-  payload: CreatePvPRoomPayload,
-): Promise<CreatePvPRoomResult> {
+export async function createPvPRoom(payload: CreatePvPRoomPayload): Promise<CreatePvPRoomResult> {
   try {
-    const response = await httpClient.post<CreatePvPRoomResponse>('/pvp/rooms', payload, {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
-    })
+    const response = await proxyApiClient.post<CreatePvPRoomResponse>(
+      '/proxy-api/pvp/rooms',
+      payload,
+    )
 
     const roomDetails = response.data?.data
     if (!roomDetails) {

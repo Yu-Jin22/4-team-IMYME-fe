@@ -6,15 +6,20 @@ import { getKeywords } from '../api/getKeywords'
 
 import type { KeywordItemType } from '@/entities/keyword'
 
+const KEYWORDS_QUERY_KEY = 'keywords'
+
 type UseKeywordListOptions = {
   categoryId: number | null
-  accessToken: string
 }
 
-export function useKeywordList({ categoryId, accessToken }: UseKeywordListOptions) {
+export const getKeywordListQueryKey = (categoryId: number | null) =>
+  [KEYWORDS_QUERY_KEY, categoryId] as const
+
+export function useKeywordList({ categoryId }: UseKeywordListOptions) {
   return useQuery<KeywordItemType[]>({
-    queryKey: ['keywords', categoryId],
-    queryFn: () => getKeywords(accessToken, categoryId),
-    enabled: Boolean(accessToken) && categoryId !== null,
+    queryKey: getKeywordListQueryKey(categoryId),
+    queryFn: () => getKeywords(categoryId),
+    enabled: categoryId !== null,
+    staleTime: 3600000,
   })
 }

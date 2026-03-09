@@ -6,7 +6,6 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { Room } from '@/entities/room'
-import { useAccessToken } from '@/features/auth'
 import { getPvPRoomJoinQueryKey, joinPvPRoom, useRoomList } from '@/features/pvp'
 import { StatusMessage } from '@/shared'
 
@@ -31,23 +30,17 @@ type RoomListProps = {
 export function RoomList({ categoryId }: RoomListProps) {
   const queryClient = useQueryClient()
   const router = useRouter()
-  const accessToken = useAccessToken()
   const [joiningRoomId, setJoiningRoomId] = useState<number | null>(null)
-  const roomListQuery = useRoomList(accessToken, {
+  const roomListQuery = useRoomList({
     categoryId,
     status: OPEN_ROOM_STATUS,
   })
 
   const handleJoinRoom = async (roomId: number) => {
-    if (!accessToken) {
-      toast.error(JOIN_ERROR_MESSAGE)
-      return
-    }
-
     if (joiningRoomId !== null) return
 
     setJoiningRoomId(roomId)
-    const joinResult = await joinPvPRoom(accessToken, roomId)
+    const joinResult = await joinPvPRoom(roomId)
     setJoiningRoomId(null)
 
     if (!joinResult.ok) {

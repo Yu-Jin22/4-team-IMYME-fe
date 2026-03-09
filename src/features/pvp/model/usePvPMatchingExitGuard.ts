@@ -7,11 +7,11 @@ import { toast } from 'sonner'
 import { exitPvPRoom } from '@/entities/room'
 
 const EXIT_ROOM_ERROR_MESSAGE = '매칭을 종료하던 중 오류가 발생하였습니다.'
-const EXIT_ROOM_PATH = '/pvp/rooms'
+const EXIT_ROOM_PATH = '/pvp'
 
 type UsePvPMatchingExitGuardParams = {
-  accessToken: string | null
   joinedRoomId: number | null
+  unregisterRoomSession: () => void
   cleanupMatchingConnection: () => Promise<void>
 }
 
@@ -25,8 +25,8 @@ type UsePvPMatchingExitGuardResult = {
 }
 
 export function usePvPMatchingExitGuard({
-  accessToken,
   joinedRoomId,
+  unregisterRoomSession,
   cleanupMatchingConnection,
 }: UsePvPMatchingExitGuardParams): UsePvPMatchingExitGuardResult {
   const router = useRouter()
@@ -42,19 +42,26 @@ export function usePvPMatchingExitGuard({
 
     setIsExitingRoom(true)
 
-    if (accessToken && joinedRoomId) {
-      const isExited = await exitPvPRoom(accessToken, joinedRoomId)
+    let shouldShowExitErrorToast = false
+
+    if (joinedRoomId) {
+      unregisterRoomSession()
+      const isExited = await exitPvPRoom(joinedRoomId)
       if (!isExited) {
-        setIsExitingRoom(false)
-        toast.error(EXIT_ROOM_ERROR_MESSAGE)
-        return
+        shouldShowExitErrorToast = true
       }
     }
 
-    setIsExitAlertOpen(false)
-    await cleanupMatchingConnection()
-    setIsExitingRoom(false)
-    router.replace(EXIT_ROOM_PATH)
+    try {
+      setIsExitAlertOpen(false)
+      await cleanupMatchingConnection()
+    } finally {
+      setIsExitingRoom(false)
+      if (shouldShowExitErrorToast) {
+        toast.error(EXIT_ROOM_ERROR_MESSAGE)
+      }
+      router.replace(EXIT_ROOM_PATH)
+    }
   }
 
   const handleExitCancel = () => {

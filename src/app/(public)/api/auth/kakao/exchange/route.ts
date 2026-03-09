@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { NextRequest, NextResponse } from 'next/server'
 
+import { setAccessTokenCookies, setRefreshTokenCookie } from '@/features/auth/server'
 import { httpClient } from '@/shared/api'
 
 export async function POST(req: NextRequest) {
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     const accessToken = response.data?.data?.accessToken
     const refreshToken = response.data?.data?.refreshToken
-    const expiresIn = response.data?.data?.expiresIn
+    const expiresIn = Number(response.data?.data?.expiresIn ?? 0)
     const user = response.data?.data?.user
 
     if (!accessToken || !user) {
@@ -50,14 +51,11 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // 로그인 직후부터 서버/클라이언트가 같은 access token cookie를 공유한다.
+    setAccessTokenCookies(res, String(accessToken), expiresIn)
+
     if (refreshToken) {
-      res.cookies.set('refresh_token', String(refreshToken), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_SECURE === 'true',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 3600, // 예시: 14일 (백엔드 만료와 맞추세요)
-      })
+      setRefreshTokenCookie(res, String(refreshToken))
     }
     return res
   } catch (err: unknown) {
@@ -71,5 +69,7 @@ export async function POST(req: NextRequest) {
         { status }, // ✅ 실제 status 그대로 전달
       )
     }
+
+    return NextResponse.json({ message: 'backend_exchange_failed' }, { status: 500 })
   }
 }

@@ -3,19 +3,18 @@
 import { useRouter } from 'next/navigation'
 
 import { useClearProfile } from '@/entities/user'
-import { useAccessToken, useClearAccesstoken } from '@/features/auth'
+import { useClearAccesstoken } from '@/features/auth'
 import { logout } from '@/features/header-menu'
 import { Button } from '@/shared'
 
 export function LogoutButton() {
-  const accessToken = useAccessToken()
   const clearAccessToken = useClearAccesstoken()
   const clearProfile = useClearProfile()
   const router = useRouter()
   const handleLogout = async () => {
     const deviceUuid = localStorage.getItem('device_uuid')
 
-    const result = await logout(accessToken, deviceUuid)
+    const result = await logout(deviceUuid)
     if (!result.ok) {
       return
     }

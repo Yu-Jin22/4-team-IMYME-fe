@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 const PROTECTED_PATHS = ['/main', '/mypage', '/levelup', '/pvp']
 const LOGIN_PATH = '/login'
 const MAIN_PATH = '/main'
+const ACCESS_TOKEN_COOKIE = 'access_token'
 const REFRESH_TOKEN_COOKIE = 'refresh_token'
 const REDIRECT_BASE_URL = process.env.NEXT_PUBLIC_SERVER_URL ?? process.env.NEXT_PUBLIC_SITE_URL
 const FORWARDED_HOST_HEADER = 'x-forwarded-host'
@@ -53,8 +54,9 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (pathname === '/') {
+    const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value
     const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value
-    if (refreshToken) {
+    if (accessToken || refreshToken) {
       const redirectUrl = createRedirectUrl(MAIN_PATH, request)
       return NextResponse.redirect(redirectUrl)
     }
@@ -66,8 +68,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
+  const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value
   const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value
-  if (!refreshToken) {
+  if (!accessToken && !refreshToken) {
     const redirectUrl = createRedirectUrl(LOGIN_PATH, request)
     return NextResponse.redirect(redirectUrl)
   }

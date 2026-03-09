@@ -10,7 +10,6 @@ type PvPResultVariant = 'win' | 'lose'
 type PvPCardProps = {
   id?: number
   historyId?: number
-  accessToken?: string
   title: string
   resultVariant: PvPResultVariant
   opponentName: string
@@ -51,7 +50,6 @@ const shortenTagLabel = (value: string) => {
 
 export function PvPCard({
   historyId,
-  accessToken,
   title,
   resultVariant,
   opponentName,
@@ -85,11 +83,11 @@ export function PvPCard({
   const handleDeleteClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation()
 
-    if (!accessToken || !historyId || isDeleting) return
+    if (!historyId || isDeleting) return
 
     setIsDeleting(true)
 
-    const hideResult = await hidePvPCard(accessToken, historyId)
+    const hideResult = await hidePvPCard(historyId)
 
     setIsDeleting(false)
 

@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 const HIDE_PVP_CARD_PAYLOAD = {
   isHidden: true,
@@ -17,19 +17,11 @@ type HidePvPCardResponse = {
   timestamp?: string
 }
 
-export async function hidePvPCard(
-  accessToken: string,
-  historyId: number,
-): Promise<HidePvPCardResult | null> {
+export async function hidePvPCard(historyId: number): Promise<HidePvPCardResult | null> {
   try {
-    const response = await httpClient.patch<HidePvPCardResponse>(
-      `/pvp/histories/my-rooms/${historyId}`,
+    const response = await proxyApiClient.patch<HidePvPCardResponse>(
+      `/proxy-api/pvp/histories/my-rooms/${historyId}`,
       HIDE_PVP_CARD_PAYLOAD,
-      {
-        headers: {
-          Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-        },
-      },
     )
 
     return response.data?.data ?? null

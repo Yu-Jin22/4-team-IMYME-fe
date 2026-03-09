@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { startWarmup } from '@/features/levelup'
-import { useCardDetails } from '@/features/levelup-feedback'
 import { resolveAudioContentType } from '@/shared'
 
 import { completeAudioUpload } from '../api/completeAudioUpload'
@@ -20,14 +19,12 @@ const REDIRECT_DELAY_MS = 1500
 const AUTO_SUBMIT_DELAY_MS = 0
 
 type UseLevelUpRecordControllerParams = {
-  accessToken: string
   cardId: number | undefined
   attemptId: number | undefined
   attemptNo: number | undefined
 }
 
 type UseLevelUpRecordControllerResult = {
-  data: ReturnType<typeof useCardDetails>['data']
   isSubmittingFeedback: boolean
   uploadStatus: FeedbackStatus | null
   isStartingWarmup: boolean
@@ -35,27 +32,25 @@ type UseLevelUpRecordControllerResult = {
   isMicAlertOpen: boolean
   isRecording: boolean
   isPaused: boolean
-  elapsedSeconds: number
   recordedBlob: Blob | null
   handleMicClick: () => Promise<void>
   handleMicAlertOpenChange: (open: boolean) => void
+  getElapsedSeconds: () => number
   handleRecordingComplete: () => Promise<void>
 }
 
 export function useLevelUpRecordController({
-  accessToken,
   cardId,
   attemptId,
   attemptNo,
 }: UseLevelUpRecordControllerParams): UseLevelUpRecordControllerResult {
   const router = useRouter()
-  const { data } = useCardDetails(accessToken, cardId)
 
   const {
     isMicAlertOpen,
     isRecording,
     isPaused,
-    elapsedSeconds,
+    getElapsedSeconds,
     recordedBlob,
     autoStopped,
     handleMicClick: handleBaseMicClick,
@@ -82,7 +77,7 @@ export function useLevelUpRecordController({
   }, [router, warmupError])
 
   const handleMicClick = async () => {
-    if (!accessToken || !cardId) return
+    if (!cardId) return
 
     // 녹음 중에는 공통 컨트롤러의 pause/resume 로직을 그대로 사용
     if (isRecording) {
@@ -91,7 +86,7 @@ export function useLevelUpRecordController({
     }
 
     setIsStartingWarmup(true)
-    const response = await startWarmup(accessToken, { cardId })
+    const response = await startWarmup({ cardId })
     setIsStartingWarmup(false)
 
     if (!response) {
@@ -106,7 +101,7 @@ export function useLevelUpRecordController({
 
   const handleRecordingComplete = useCallback(async () => {
     if (isSubmittingFeedback) return
-    if (!accessToken || !cardId || !attemptId) return
+    if (!cardId || !attemptId) return
 
     setIsSubmittingFeedback(true)
 
@@ -121,7 +116,7 @@ export function useLevelUpRecordController({
     const normalizedMimeType = completedBlob.type.split(';')[0]
     const contentType = resolveAudioContentType(normalizedMimeType)
 
-    const audioUrlResult = await getAudioUrl(accessToken, attemptId, contentType)
+    const audioUrlResult = await getAudioUrl(attemptId, contentType)
     if (!audioUrlResult.ok) {
       setIsSubmittingFeedback(false)
       toast.error('오디오 업로드 URL을 가져오지 못했습니다. 다시 시도해주세요.')
@@ -145,13 +140,7 @@ export function useLevelUpRecordController({
       return
     }
 
-    const completeResult = await completeAudioUpload(
-      accessToken,
-      cardId,
-      attemptId,
-      objectKey,
-      durationSeconds,
-    )
+    const completeResult = await completeAudioUpload(cardId, attemptId, objectKey, durationSeconds)
     if (!completeResult.ok) {
       setIsSubmittingFeedback(false)
       toast.error('오디오 업로드에 실패했습니다. 다시 시도해주세요.')
@@ -175,7 +164,6 @@ export function useLevelUpRecordController({
 
     router.replace(`/levelup/feedback?${feedbackParams.toString()}`)
   }, [
-    accessToken,
     attemptId,
     attemptNo,
     cardId,
@@ -199,7 +187,6 @@ export function useLevelUpRecordController({
   }, [autoStopped, handleRecordingComplete, isSubmittingFeedback, recordedBlob, resetAutoStopped])
 
   return {
-    data,
     isSubmittingFeedback,
     uploadStatus,
     isStartingWarmup,
@@ -207,10 +194,10 @@ export function useLevelUpRecordController({
     isMicAlertOpen,
     isRecording,
     isPaused,
-    elapsedSeconds,
     recordedBlob,
     handleMicClick,
     handleMicAlertOpenChange,
+    getElapsedSeconds,
     handleRecordingComplete,
   }
 }

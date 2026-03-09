@@ -1,23 +1,12 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 type LogoutResult = { ok: true } | { ok: false; reason: string }
 
-export async function logout(
-  accessToken: string | null,
-  deviceUuid: string | null,
-): Promise<LogoutResult> {
+export async function logout(deviceUuid: string | null): Promise<LogoutResult> {
   try {
-    const response = await httpClient.post(
-      '/auth/logout',
-      {
-        deviceUuid,
-      },
-      {
-        headers: {
-          Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-        },
-      },
-    )
+    const response = await proxyApiClient.post('/proxy-api/auth/logout', {
+      deviceUuid,
+    })
 
     if (response.status !== 204) {
       return { ok: false, reason: 'unexpected_status' }

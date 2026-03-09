@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 
-import { useAccessToken } from '@/features/auth'
 import { createCard, INITIAL_ATTEMPT_DURATION_SECONDS } from '@/features/levelup'
 import { createAttempt } from '@/features/record'
 
@@ -18,7 +17,6 @@ type UseLevelUpStartActionsParams = {
 }
 
 type UseLevelUpStartActionsResult = {
-  accessToken: string
   handleConfirmCardName: (title: string) => Promise<void>
   handleBack: () => void
 }
@@ -32,13 +30,12 @@ export function useLevelUpStartActions({
 }: UseLevelUpStartActionsParams): UseLevelUpStartActionsResult {
   // 라우팅과 인증 토큰 사용
   const router = useRouter()
-  const accessToken = useAccessToken()
 
   // 카드 생성 → 시도 생성 → 녹음 페이지로 이동
   const handleConfirmCardName = async (title: string) => {
     if (!selectedCategory || !selectedKeyword) return
 
-    const response = await createCard(accessToken, {
+    const response = await createCard({
       categoryId: selectedCategory.id,
       keywordId: selectedKeyword.id,
       title,
@@ -47,11 +44,7 @@ export function useLevelUpStartActions({
     const createdCardId = response?.data?.id
     if (!createdCardId) return
 
-    const attemptResponse = await createAttempt(
-      accessToken,
-      createdCardId,
-      INITIAL_ATTEMPT_DURATION_SECONDS,
-    )
+    const attemptResponse = await createAttempt(createdCardId, INITIAL_ATTEMPT_DURATION_SECONDS)
     if (!attemptResponse.ok) return
 
     const attemptId = attemptResponse.data?.attemptId
@@ -81,7 +74,6 @@ export function useLevelUpStartActions({
   }
 
   return {
-    accessToken,
     handleConfirmCardName,
     handleBack,
   }

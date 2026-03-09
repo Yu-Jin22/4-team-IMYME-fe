@@ -11,7 +11,8 @@ import {
   useProfile,
   useSyncMyProfile,
 } from '@/entities/user'
-import { useAccessToken } from '@/features/auth'
+
+import type { UserProfile } from '@/entities/user'
 
 const AVATAR_SIZE_PX = 60
 const FALLBACK_NICKNAME = '로딩중...'
@@ -20,22 +21,29 @@ const MAIN_PAGE_PATH = '/main'
 const MY_PAGE_PATH = '/mypage'
 
 interface ProfileDashboardProps {
+  // layout이 서버에서 먼저 가져온 프로필
+  initialProfile?: UserProfile | null
   deferAvatarImageUntilProfileReady?: boolean
 }
 
 export function ProfileDashboard({
+  initialProfile,
   deferAvatarImageUntilProfileReady = false,
 }: ProfileDashboardProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const accessToken = useAccessToken()
+
   const profile = useProfile()
-  const { data: myProfile } = useMyProfileQuery(accessToken, { enabled: Boolean(accessToken) })
-  useSyncMyProfile({ accessToken, myProfile })
-  const resolvedProfile = myProfile ?? profile
+  // hydration 이후에는 client query가 최신 프로필을 계속 가져온다.
+  const { data: myProfile } = useMyProfileQuery()
+  // 초기 서버 주입값 또는 최신 query 값을 store에도 동기화한다.
+  useSyncMyProfile({ myProfile, initialProfile })
+  // 첫 렌더는 initialProfile, 이후에는 query/store 순으로 사용한다.
+  const resolvedProfile = myProfile ?? initialProfile ?? profile
 
   const isMainPage = pathname === MAIN_PAGE_PATH
   const isMyPage = pathname === MY_PAGE_PATH
+  // 닉네임 또는 이미지가 하나라도 있으면 프로필이 준비된 것으로 본다.
   const isProfileReady = Boolean(resolvedProfile.nickname || resolvedProfile.profileImageUrl)
   const shouldDeferAvatarImage = deferAvatarImageUntilProfileReady && !myProfile
   const avatarSrcForRender = shouldDeferAvatarImage ? '' : resolvedProfile.profileImageUrl
@@ -57,7 +65,6 @@ export function ProfileDashboard({
           if (isMainPage) router.push('/mypage')
         }}
       >
-        {/* 프로필 요약 */}
         <div className="grid w-full auto-cols-max grid-flow-col items-start gap-4">
           <div
             className="ml-10 overflow-hidden rounded-full"

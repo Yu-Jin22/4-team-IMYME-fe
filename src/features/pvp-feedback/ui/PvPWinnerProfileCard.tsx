@@ -4,21 +4,23 @@ import type { ReactNode } from 'react'
 
 const WRAPPER_CLASSNAME =
   'bg-secondary flex w-80 flex-col items-center justify-center gap-2 self-center rounded-2xl px-5 py-5'
-const DEFAULT_WIN_LABEL = 'Win!'
+const WIN_LABEL = 'Win!'
+const NO_WINNER_LABEL = 'NO WINNER'
+
+type PvPWinnerProfileCardVariant = 'winner' | 'no_winner'
 
 type PvPWinnerProfileCardProps = {
   profile: ReactNode
-  winLabel?: string
+  variant?: PvPWinnerProfileCardVariant
 }
 
-export function PvPWinnerProfileCard({
-  profile,
-  winLabel = DEFAULT_WIN_LABEL,
-}: PvPWinnerProfileCardProps) {
+export function PvPWinnerProfileCard({ profile, variant = 'winner' }: PvPWinnerProfileCardProps) {
+  const resolvedLabel = variant === 'no_winner' ? NO_WINNER_LABEL : WIN_LABEL
+
   return (
     <div className={WRAPPER_CLASSNAME}>
       {profile}
-      <p className="font-semibold">{winLabel}</p>
+      <p className="font-semibold">{resolvedLabel}</p>
     </div>
   )
 }

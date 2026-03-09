@@ -3,7 +3,6 @@
 import { useParams, useRouter } from 'next/navigation'
 
 import { PvPCategory, PvPKeyword, usePvPCardDetails } from '@/entities/pvp-card'
-import { useAccessToken } from '@/features/auth'
 import { PvPParticipants, PvPProfile, toPvPParticipantProfiles } from '@/features/pvp'
 import { PvPFeedbackPanel, PvPWinnerProfileCard } from '@/features/pvp-feedback'
 import { ModeHeader, StatusMessage } from '@/shared'
@@ -37,9 +36,8 @@ export function PvPFeedbackView({ variant, roomId, messages }: PvPFeedbackViewPr
   const routeRoomId = Number(params.id)
   const targetRoomId = typeof roomId === 'number' ? roomId : routeRoomId
 
-  const accessToken = useAccessToken()
   const isInvalidRoomId = Number.isNaN(targetRoomId)
-  const detailsQuery = usePvPCardDetails(accessToken, isInvalidRoomId ? undefined : targetRoomId)
+  const detailsQuery = usePvPCardDetails(isInvalidRoomId ? undefined : targetRoomId)
 
   if (isInvalidRoomId) {
     return <StatusMessage message={messages?.invalidRoomId ?? DEFAULT_INVALID_ROOM_ID_MESSAGE} />
@@ -59,6 +57,7 @@ export function PvPFeedbackView({ variant, roomId, messages }: PvPFeedbackViewPr
   }
 
   const { leftProfile, rightProfile } = toPvPParticipantProfiles(details)
+  const winnerCardVariant = details.winner ? 'winner' : 'no_winner'
 
   const handleBackClick = () => {
     if (variant === 'matching') {
@@ -90,6 +89,7 @@ export function PvPFeedbackView({ variant, roomId, messages }: PvPFeedbackViewPr
             avatarUrl={details.winner?.profileImageUrl}
           />
         }
+        variant={winnerCardVariant}
       />
       <PvPFeedbackPanel feedback={details.myResult?.feedback} />
     </div>
