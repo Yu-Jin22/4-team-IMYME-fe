@@ -107,6 +107,7 @@ jobs:
           PERF_BASE_URL: ${{ secrets.PERF_RELEASE_BASE_URL }}
           ALLOW_E2E_LOGIN: ${{ secrets.ALLOW_RELEASE_E2E_LOGIN }}
           NEXT_PUBLIC_PVP_OPEN: ${{ secrets.PVP_RELEASE_OPEN }}
+          NEXT_PUBLIC_CHALLENGE_OPEN: ${{ secrets.CHALLENGE_RELEASE_OPEN }}
         run: pnpm next build
 
   ci-notify-success:
@@ -221,6 +222,7 @@ jobs:
             NEXT_PUBLIC_SECURE=${{ secrets.NEXT_PUBLIC_RELEASE_SECURE }}
             NEXT_PUBLIC_SERVER_URL=${{ secrets.NEXT_PUBLIC_RELEASE_SERVER_URL }}
             NEXT_PUBLIC_PVP_OPEN=${{ secrets.PVP_RELEASE_OPEN }}
+            NEXT_PUBLIC_CHALLENGE_OPEN=${{ secrets.CHALLENGE_RELEASE_OPEN }}
           tags: |
             219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:${{ github.sha }}
             219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-frontend:release-latest
