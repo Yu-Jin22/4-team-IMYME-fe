@@ -35,6 +35,8 @@ type UsePvPMatchingSocketParams = {
   accessToken: string | null
   joinedRoomId: number | null
   myUserId: number | undefined
+  // STATUS_CHANGE 수신 시 상태 변경을 외부에 전달한다.
+  onRoomStatusChange?: (status: string) => void
   // 내가 준비 버튼을 눌렀을 때 실행할 콜백 (버튼 비활성화 등에 사용)
   onSelfReady?: () => void
   // 내가 제출 완료 이벤트를 받았을 때 실행할 콜백
@@ -65,6 +67,7 @@ export function usePvPMatchingSocket({
   accessToken,
   joinedRoomId,
   myUserId,
+  onRoomStatusChange,
   onSelfReady,
   onSelfAnswerSubmitted,
   onOpponentAnswerSubmitted,
@@ -128,6 +131,7 @@ export function usePvPMatchingSocket({
 
       const roomStatus = message.data.status
       setLiveRoomStatus(roomStatus)
+      onRoomStatusChange?.(roomStatus)
 
       // RECORDING으로 바뀌면 thinking countdown 정보는 더 이상 필요 없다.
       if (roomStatus === RECORDING_ROOM_STATUS) {
@@ -147,7 +151,7 @@ export function usePvPMatchingSocket({
         setThinkingEndsAtMs(nextThinkingEndsAtMs)
       }
     },
-    [onOpponentAnswerSubmitted, onSelfAnswerSubmitted, onSelfReady],
+    [onOpponentAnswerSubmitted, onRoomStatusChange, onSelfAnswerSubmitted, onSelfReady],
   )
 
   // 공통 room-topic 소켓 훅을 사용해 연결/구독/정리를 위임
