@@ -1,5 +1,6 @@
 import dynamic from 'next/dynamic'
 
+import { ChallengeRankingCard } from '@/features/challenge'
 import { ModeButton } from '@/features/mode'
 import { RecentListHeader } from '@/shared'
 
@@ -29,11 +30,7 @@ export function MainPage() {
         ) : null}
       </div>
       {/*챌린지 랭킹*/}
-      {process.env.NEXT_PUBLIC_CHALLENGE_OPEN === 'true' ? (
-        <div>
-          <p>어제의 랭킹</p>
-        </div>
-      ) : null}
+      {process.env.NEXT_PUBLIC_CHALLENGE_OPEN === 'true' ? <ChallengeRankingCard /> : null}
       {/* 최근 학습 목록 */}
       <RecentListHeader variant="levelup" />
       <RecentCardListLazy />
