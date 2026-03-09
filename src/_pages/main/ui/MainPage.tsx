@@ -23,18 +23,23 @@ export function MainPage() {
       <div className="mt-10 flex flex-col gap-6 pb-5">
         {/* 학습/대결 모드 버튼 */}
         <ModeButton variant="levelup" />
-        {process.env.NEXT_PUBLIC_PVP_OPEN === 'true' ? <ModeButton variant="pvp" /> : null}
+        <ModeButton variant="pvp" />
+        {process.env.NEXT_PUBLIC_CHALLENGE_OPEN === 'true' ? (
+          <ModeButton variant="challenge" />
+        ) : null}
       </div>
+      {/*챌린지 랭킹*/}
+      {process.env.NEXT_PUBLIC_CHALLENGE_OPEN === 'true' ? (
+        <div>
+          <p>어제의 랭킹</p>
+        </div>
+      ) : null}
       {/* 최근 학습 목록 */}
       <RecentListHeader variant="levelup" />
       <RecentCardListLazy />
-      {process.env.NEXT_PUBLIC_PVP_OPEN !== 'true' ? null : (
-        <>
-          {/* 최근 대결 목록 */}
-          <RecentListHeader variant="pvp" />
-          <RecentPvPListLazy />
-        </>
-      )}
+      <RecentListHeader variant="pvp" />
+      <RecentPvPListLazy />
+      {process.env.NEXT_PUBLIC_CHALLENGE_OPEN !== 'true' ? null : <>{/* 최근 대결 목록 */}</>}
     </div>
   )
 }

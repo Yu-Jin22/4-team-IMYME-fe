@@ -51,6 +51,13 @@ export function PvPMatchingPage() {
     }
   }
 
+  function handleRoomStatusChange(nextStatus: string) {
+    // 라운드가 OPEN/MATCHED로 리셋되면 준비 버튼 상태를 다시 활성화할 수 있게 초기화한다.
+    if (nextStatus === OPEN_ROOM_STATUS || nextStatus === MATCHED_ROOM_STATUS) {
+      setIsReadySubmitted(false)
+    }
+  }
+
   // 접근 검증/room join/participant 판별은 전용 훅으로 분리
   const {
     accessState,
@@ -85,6 +92,7 @@ export function PvPMatchingPage() {
     onSelfAnswerSubmitted: handleSelfAnswerSubmittedMessage,
     // 상대 제출 완료 이벤트 수신 시(내가 아직 녹음중이면) 토스트 표시
     onOpponentAnswerSubmitted: handleOpponentAnswerSubmittedMessage,
+    onRoomStatusChange: handleRoomStatusChange,
   })
 
   // 소켓 상태가 있으면 우선 사용하고, 없으면 서버 초기 상태를 현재 상태로 사용한다.
