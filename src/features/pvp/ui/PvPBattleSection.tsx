@@ -28,6 +28,8 @@ type PvPBattleSectionProps = {
   canStartPvPRecording: boolean
 }
 
+const PVP_MINIMUM_RECORDING_SECONDS_BEFORE_STOP = 1
+
 export function PvPBattleSection({
   keywordName,
   isThinkingStep,
@@ -64,6 +66,7 @@ export function PvPBattleSection({
           isRecording={isRecording}
           isPaused={isPaused}
           getElapsedSeconds={getElapsedSeconds}
+          minimumRecordingSecondsBeforeStop={PVP_MINIMUM_RECORDING_SECONDS_BEFORE_STOP}
         />
       )}
       {/* 녹음 가이드와 준비 버튼은 battle 영역 하단에 고정한다. */}

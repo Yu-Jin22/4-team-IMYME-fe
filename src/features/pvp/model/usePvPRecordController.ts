@@ -64,6 +64,8 @@ export function usePvPRecordController({
   roomId,
   roomStatus,
 }: UsePvPRecordControllerParams): UsePvPRecordControllerResult {
+  // 이전 방 상태를 기억해 RECORDING 진입 시점(transition)만 감지한다.
+  const previousRoomStatusRef = useRef<string | null>(null)
   // 로컬 녹음 시작 중복 방지 ref
   const isStartingLocalRecordingRef = useRef(false)
   // 제출(생성/업로드/완료) 중복 실행 방지 ref
@@ -116,7 +118,7 @@ export function usePvPRecordController({
 
   // 제출 공통 플로우: submission 생성 -> 업로드 -> complete
   const submitRecordedBlob = useCallback(
-    async (completedBlob: Blob) => {
+    async (completedBlob: Blob, durationSeconds: number) => {
       if (isSubmittingRef.current || hasSubmittedRef.current) return
 
       // 제출 중복 방지 플래그 on
@@ -160,7 +162,6 @@ export function usePvPRecordController({
         }
 
         // 3) 업로드 완료 후 submission complete 호출
-        const durationSeconds = getDurationSeconds()
         const completeSubmissionResult = await completePvPSubmission(
           createSubmissionResult.data.submissionId,
           { durationSeconds },
@@ -185,7 +186,7 @@ export function usePvPRecordController({
         setIsSubmittingSubmission(false)
       }
     },
-    [getDurationSeconds, roomId],
+    [roomId],
   )
 
   const handlePvPMicClick = async () => {
@@ -199,7 +200,8 @@ export function usePvPRecordController({
         return
       }
 
-      await submitRecordedBlob(completedBlob)
+      const durationSeconds = getDurationSeconds()
+      await submitRecordedBlob(completedBlob, durationSeconds)
       // 녹음 종료 분기 처리를 끝냈으므로 반환
       return
     }
@@ -210,13 +212,19 @@ export function usePvPRecordController({
     }
   }
 
-  // 방 상태가 RECORDING으로 바뀌면 자동으로 녹음을 시작
+  // 방 상태가 RECORDING으로 "전이"되는 시점에만 자동으로 녹음을 시작
   useEffect(() => {
-    // RECORDING 단계가 아니면 자동 시작하지 않는다.
-    if (!isRecordingStep) return
+    const didEnterRecordingStep =
+      roomStatus === RECORDING_ROOM_STATUS &&
+      previousRoomStatusRef.current !== RECORDING_ROOM_STATUS
+
+    previousRoomStatusRef.current = roomStatus
+
+    if (!didEnterRecordingStep) return
+
     // 비동기 녹음 시작 실행
     void startLocalRecordingIfNeeded()
-  }, [isRecordingStep, startLocalRecordingIfNeeded])
+  }, [roomStatus, startLocalRecordingIfNeeded])
 
   // 60초 auto-stop으로 녹음이 종료된 경우, blob 생성이 완료되면 제출 API를 자동 실행한다.
   useEffect(() => {
@@ -227,11 +235,12 @@ export function usePvPRecordController({
     resetAutoStopped()
 
     const submitAfterAutoStop = async () => {
-      await submitRecordedBlob(recordedBlob)
+      const durationSeconds = getDurationSeconds()
+      await submitRecordedBlob(recordedBlob, durationSeconds)
     }
 
     void submitAfterAutoStop()
-  }, [autoStopped, recordedBlob, resetAutoStopped, submitRecordedBlob])
+  }, [autoStopped, getDurationSeconds, recordedBlob, resetAutoStopped, submitRecordedBlob])
 
   return {
     isRecording,
