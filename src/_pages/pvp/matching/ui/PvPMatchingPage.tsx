@@ -5,10 +5,11 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { PvPCategory } from '@/entities/pvp-card'
-import { useAccessToken } from '@/features/auth'
+import { useEnsuredAccessToken } from '@/features/auth'
 import {
   getPvPMatchingUiState,
   MATCHED_ROOM_STATUS,
+  OPEN_ROOM_STATUS,
   PVP_MATCHING_ACCESS_DENIED_MESSAGE,
   PVP_MATCHING_ERROR_MESSAGE,
   PVP_MATCHING_INVALID_ROOM_ID_MESSAGE,
@@ -31,7 +32,7 @@ import { AlertModal, ModeHeader, StatusMessage } from '@/shared'
 export function PvPMatchingPage() {
   const params = useParams<{ id: string }>()
   const roomId = Number(params.id)
-  const accessToken = useAccessToken()
+  const socketAccessToken = useEnsuredAccessToken(Boolean(roomId))
 
   // 내가 준비 버튼을 이미 눌렀는지 여부
   const [isReadySubmitted, setIsReadySubmitted] = useState(false)
@@ -60,7 +61,6 @@ export function PvPMatchingPage() {
     shouldRedirectToRooms,
     refetchRoomDetails,
   } = usePvPMatchingAccess({
-    accessToken,
     roomId,
   })
   const hasRefetchedMatchedRoomRef = useRef(false)
@@ -71,9 +71,11 @@ export function PvPMatchingPage() {
     thinkingKeywordName,
     thinkingEndsAtMs,
     setLiveRoomStatus,
+    resetBattleKeywordDisplay,
+    unregisterRoomSession,
     cleanupMatchingConnection,
   } = usePvPMatchingSocket({
-    accessToken,
+    accessToken: socketAccessToken,
     joinedRoomId,
     // 메시지 발신자 판별용 현재 유저 id
     myUserId,
@@ -104,7 +106,6 @@ export function PvPMatchingPage() {
 
   // 준비 버튼 클릭 액션
   const { canStartPvPRecording, handleReadyButtonClick } = usePvPReadyAction({
-    accessToken,
     roomId: joinedRoomId,
     roomStatus: currentRoomStatus,
     isReadySubmitted,
@@ -115,8 +116,8 @@ export function PvPMatchingPage() {
   // 페이지 이탈(뒤로가기/종료) 가드 훅
   const { isExitAlertOpen, handleBack, handleExitConfirm, handleExitCancel, setIsExitAlertOpen } =
     usePvPMatchingExitGuard({
-      accessToken,
       joinedRoomId: participantRoomId,
+      unregisterRoomSession,
       cleanupMatchingConnection,
     })
 
@@ -124,7 +125,7 @@ export function PvPMatchingPage() {
     isRecording,
     // 일시정지 여부(현재 PvP는 pause 비활성 설계지만 UI 호환으로 유지)
     isPaused,
-    elapsedSeconds,
+    getElapsedSeconds,
     recordedBlob,
     // 마이크 상호작용 허용 여부
     isMicInteractionAllowed,
@@ -136,7 +137,6 @@ export function PvPMatchingPage() {
     markSubmissionCompleted,
     handlePvPMicClick,
   } = usePvPRecordController({
-    accessToken,
     roomId: joinedRoomId,
     roomStatus: currentRoomStatus,
   })
@@ -149,6 +149,19 @@ export function PvPMatchingPage() {
     shouldRedirectToRooms,
     cleanupMatchingConnection,
   })
+
+  // 호스트 OPEN 대기 화면(PvPMatchingWaiting)으로 전환되면
+  // 이전 battle 섹션에서 보던 키워드 표시 상태를 초기화한다.
+  const shouldResetBattleKeywordOnWaiting =
+    accessState === 'ready' &&
+    Boolean(resolvedRoomDetails) &&
+    (liveRoomStatus ?? resolvedRoomDetails?.status) === OPEN_ROOM_STATUS &&
+    resolvedRoomDetails?.host.id === myUserId
+
+  useEffect(() => {
+    if (!shouldResetBattleKeywordOnWaiting) return
+    resetBattleKeywordDisplay()
+  }, [resetBattleKeywordDisplay, shouldResetBattleKeywordOnWaiting])
 
   // accessState 하나로 페이지 초기 상태를 표준화해 렌더 분기를 단순화한다.
   if (accessState === 'invalid_room_id') {
@@ -209,10 +222,7 @@ export function PvPMatchingPage() {
       />
       <PvPCategory categoryName={roomDetails.category.name} />
       {isHostWaitingOpenState ? (
-        <PvPMatchingWaiting
-          leftProfile={leftProfile}
-          rightProfile={rightProfile}
-        />
+        <PvPMatchingWaiting leftProfile={leftProfile} />
       ) : (
         <PvPParticipants
           leftProfile={leftProfile}
@@ -228,7 +238,7 @@ export function PvPMatchingPage() {
           isProcessingStep={isProcessingStep}
           isRecording={isRecording}
           isPaused={isPaused}
-          elapsedSeconds={elapsedSeconds}
+          getElapsedSeconds={getElapsedSeconds}
           isMicDisabled={Boolean(recordedBlob) || !isMicInteractionAllowed}
           onMicClick={() => {
             void handlePvPMicClick()

@@ -12,6 +12,7 @@ const PLAYER_READY_MESSAGE_TYPE = 'PLAYER_READY'
 const ANSWER_SUBMITTED_MESSAGE_TYPE = 'ANSWER_SUBMITTED'
 const THINKING_ROOM_STATUS = 'THINKING'
 const RECORDING_ROOM_STATUS = 'RECORDING'
+const UNREGISTER_SESSION_ACTION = 'unregister-session'
 
 const WAIT_OPPONENT_READY_TOAST_MESSAGE = '상대방이 준비할 때까지 기다려주세요.'
 const OPPONENT_READY_TOAST_MESSAGE = '상대방이 준비되었습니다.'
@@ -52,6 +53,10 @@ type UsePvPMatchingSocketResult = {
   thinkingEndsAtMs: number | null
   // 외부에서 status를 강제로 덮어쓸 때 사용하는 setter
   setLiveRoomStatus: (status: string | null) => void
+  // battle UI 표시용 THINKING 상태를 초기화한다.
+  resetBattleKeywordDisplay: () => void
+  // 방 나가기 전에 세션 해제 이벤트를 서버에 보낸다.
+  unregisterRoomSession: () => void
   // 페이지 이탈 시 구독/연결 정리 함수
   cleanupMatchingConnection: () => Promise<void>
 }
@@ -146,17 +151,31 @@ export function usePvPMatchingSocket({
   )
 
   // 공통 room-topic 소켓 훅을 사용해 연결/구독/정리를 위임
-  const { cleanupConnection: cleanupMatchingConnection } = usePvPRoomTopicSocket({
-    accessToken,
-    roomId: joinedRoomId,
-    onTopicMessage: handleTopicMessage,
-  })
+  const { cleanupConnection: cleanupMatchingConnection, publishRoomAction } = usePvPRoomTopicSocket(
+    {
+      accessToken,
+      roomId: joinedRoomId,
+      onTopicMessage: handleTopicMessage,
+    },
+  )
+
+  const unregisterRoomSession = useCallback(() => {
+    if (!joinedRoomId) return
+    publishRoomAction(joinedRoomId, UNREGISTER_SESSION_ACTION)
+  }, [joinedRoomId, publishRoomAction])
+
+  const resetBattleKeywordDisplay = useCallback(() => {
+    setThinkingKeywordName(null)
+    setThinkingEndsAtMs(null)
+  }, [])
 
   return {
     liveRoomStatus,
     thinkingKeywordName,
     thinkingEndsAtMs,
     setLiveRoomStatus,
+    resetBattleKeywordDisplay,
+    unregisterRoomSession,
     cleanupMatchingConnection,
   }
 }

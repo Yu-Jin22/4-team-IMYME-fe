@@ -11,12 +11,12 @@ export type UseRecordControllerResult = {
   isMicAlertOpen: boolean
   isRecording: boolean
   isPaused: boolean
-  elapsedSeconds: number
   recordedBlob: Blob | null
   autoStopped: boolean
   handleMicClick: () => Promise<void>
   handleMicAlertOpenChange: (open: boolean) => void
   stopRecordingAndGetBlob: () => Promise<Blob | null>
+  getElapsedSeconds: () => number
   getDurationSeconds: () => number
   clearRecordedBlob: () => void
   resetAutoStopped: () => void
@@ -39,7 +39,7 @@ export function useRecordController({
     isPaused,
     pauseRecording,
     resumeRecording,
-    elapsedSeconds,
+    getElapsedSeconds,
     getDurationSeconds,
     clearRecordedBlob,
     autoStopped,
@@ -74,12 +74,12 @@ export function useRecordController({
     isMicAlertOpen,
     isRecording,
     isPaused,
-    elapsedSeconds,
     recordedBlob,
     autoStopped,
     handleMicClick,
     handleMicAlertOpenChange,
     stopRecordingAndGetBlob,
+    getElapsedSeconds,
     getDurationSeconds,
     clearRecordedBlob,
     resetAutoStopped,

@@ -1,4 +1,5 @@
 export { MicrophoneBox } from './ui/MicrophoneBox'
+export { MicrophoneBoxSkeleton } from './ui/MicrophoneBoxSkeleton'
 export { useRecordController } from './model/useRecordController'
 export { useLevelUpRecordController } from './model/useLevelUpRecordController'
 export { getAudioUrl } from './api/getAudioUrl'

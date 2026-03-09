@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 import type { CategoryItemType } from '@/entities/category'
 
@@ -13,13 +13,9 @@ type CategoryApiResponse = {
   data?: CategoryApiItem[]
 }
 
-export async function getCategories(accessToken: string): Promise<CategoryItemType[]> {
+export async function getCategories(): Promise<CategoryItemType[]> {
   try {
-    const response = await httpClient.get<CategoryApiResponse>('/categories', {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
-    })
+    const response = await proxyApiClient.get<CategoryApiResponse>('/proxy-api/categories')
 
     const items = response.data?.data ?? []
 

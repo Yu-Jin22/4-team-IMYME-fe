@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 import type { PvPSubmission } from './createPvPSubmission'
 
@@ -18,19 +18,13 @@ export type CompletePvPSubmissionResult =
   | { ok: false; reason: string }
 
 export async function completePvPSubmission(
-  accessToken: string,
   submissionId: number,
   payload: CompletePvPSubmissionPayload,
 ): Promise<CompletePvPSubmissionResult> {
   try {
-    const response = await httpClient.post<CompletePvPSubmissionResponse>(
-      `/pvp/rooms/submissions/${submissionId}/complete`,
+    const response = await proxyApiClient.post<CompletePvPSubmissionResponse>(
+      `/proxy-api/pvp/rooms/submissions/${submissionId}/complete`,
       payload,
-      {
-        headers: {
-          Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-        },
-      },
     )
 
     const submission = response.data?.data

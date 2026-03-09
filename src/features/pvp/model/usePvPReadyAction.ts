@@ -8,7 +8,6 @@ import { startPvPRecording } from '../api/startPvPRecording'
 import { PVP_START_RECORDING_ERROR_MESSAGE, THINKING_ROOM_STATUS } from './pvpMatchingConstants'
 
 type UsePvPReadyActionParams = {
-  accessToken: string | null
   roomId: number | null
   roomStatus: string | null
   isReadySubmitted: boolean
@@ -23,7 +22,6 @@ type UsePvPReadyActionResult = {
 }
 
 export function usePvPReadyAction({
-  accessToken,
   roomId,
   roomStatus,
   isReadySubmitted,
@@ -34,19 +32,18 @@ export function usePvPReadyAction({
 
   const canStartPvPRecording =
     roomStatus === THINKING_ROOM_STATUS &&
-    Boolean(accessToken) &&
     Boolean(roomId) &&
     !isStartingRecordingRequest &&
     !isReadySubmitted
 
   const handleReadyButtonClick = useCallback(async () => {
-    if (!accessToken || !roomId) return
+    if (!roomId) return
     if (isReadySubmitted || isStartingRecordingRequest) return
 
     setIsReadySubmitted(true)
     setIsStartingRecordingRequest(true)
 
-    const startRecordingResult = await startPvPRecording(accessToken, roomId)
+    const startRecordingResult = await startPvPRecording(roomId)
 
     setIsStartingRecordingRequest(false)
 
@@ -57,14 +54,7 @@ export function usePvPReadyAction({
     }
 
     onReadySuccess(startRecordingResult.data.status)
-  }, [
-    accessToken,
-    isReadySubmitted,
-    isStartingRecordingRequest,
-    onReadySuccess,
-    roomId,
-    setIsReadySubmitted,
-  ])
+  }, [isReadySubmitted, isStartingRecordingRequest, onReadySuccess, roomId, setIsReadySubmitted])
 
   return {
     isStartingRecordingRequest,

@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 export type PvPRoomStatus =
   | 'OPEN'
@@ -63,17 +63,11 @@ type GetPvPRoomsResponse = {
 
 export type GetPvPRoomsResult = { ok: true; data: GetPvPRoomsData } | { ok: false; reason: string }
 
-export async function getPvPRooms(
-  accessToken: string,
-  params: GetPvPRoomsParams = {},
-): Promise<GetPvPRoomsResult> {
+export async function getPvPRooms(params: GetPvPRoomsParams = {}): Promise<GetPvPRoomsResult> {
   const roomStatus = params.status ?? 'OPEN'
 
   try {
-    const response = await httpClient.get<GetPvPRoomsResponse>('/pvp/rooms', {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
+    const response = await proxyApiClient.get<GetPvPRoomsResponse>('/proxy-api/pvp/rooms', {
       params: {
         ...(params.categoryId !== undefined ? { categoryId: params.categoryId } : {}),
         status: roomStatus,

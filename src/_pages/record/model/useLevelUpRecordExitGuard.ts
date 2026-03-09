@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 
 import { deleteCard } from '@/entities/card'
-import { useAccessToken } from '@/features/auth'
 import { deleteAttempt } from '@/features/levelup-feedback'
 
 const FIRST_ATTEMPT_NO = 1
@@ -19,7 +18,6 @@ type UseLevelUpRecordExitGuardResult = {
 export function useLevelUpRecordExitGuard(): UseLevelUpRecordExitGuardResult {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const accessToken = useAccessToken()
   const [isBackAlertOpen, setIsBackAlertOpen] = useState(false)
 
   const cardId = Number(searchParams.get('cardId'))
@@ -29,14 +27,14 @@ export function useLevelUpRecordExitGuard(): UseLevelUpRecordExitGuardResult {
   const handleBackConfirm = async () => {
     setIsBackAlertOpen(false)
 
-    if (accessToken && cardId && attemptId && attemptNo !== FIRST_ATTEMPT_NO) {
-      await deleteAttempt(accessToken, cardId, attemptId)
+    if (cardId && attemptId && attemptNo !== FIRST_ATTEMPT_NO) {
+      await deleteAttempt(cardId, attemptId)
       router.push('/main')
       return
     }
 
-    if (accessToken && cardId) {
-      await deleteCard(accessToken, cardId)
+    if (cardId) {
+      await deleteCard(cardId)
     }
     router.push('/main')
   }

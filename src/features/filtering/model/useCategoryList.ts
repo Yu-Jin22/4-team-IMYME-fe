@@ -6,11 +6,15 @@ import { getCategories } from '../api/getCategories'
 
 import type { CategoryItemType } from '@/entities/category'
 
-export function useCategoryList(accessToken: string) {
+type UseCategoryListOptions = {
+  initialData?: CategoryItemType[]
+}
+
+export function useCategoryList({ initialData = [] }: UseCategoryListOptions = {}) {
   return useQuery<CategoryItemType[]>({
     queryKey: ['categories'],
-    queryFn: () => getCategories(accessToken),
-    enabled: Boolean(accessToken),
-    initialData: [],
+    queryFn: () => getCategories(),
+    initialData,
+    staleTime: 3600000,
   })
 }

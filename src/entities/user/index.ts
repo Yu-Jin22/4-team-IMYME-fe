@@ -15,3 +15,5 @@ export { useOptimisticActiveCardCount } from './model/useOptimisticActiveCardCou
 export { useMyProfileQuery } from './model/useMyProfileQuery'
 export { useSyncMyProfile } from './model/useSyncMyProfile'
 export type { UserProfile } from './model/userProfile'
+export { getInitialMyProfile } from './server/getInitialMyProfile'
+export type { GetInitialMyProfileResult } from './server/getInitialMyProfile'

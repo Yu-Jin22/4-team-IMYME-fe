@@ -1,5 +1,5 @@
 import { isSupportedAudioContentType } from '@/shared'
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 type GetAudioUrlResponse = {
   data: {
@@ -16,7 +16,6 @@ type GetAudioUrlResult =
   | { ok: false; reason: string }
 
 export async function getAudioUrl(
-  accessToken: string,
   attemptId: number,
   contentType: string,
 ): Promise<GetAudioUrlResult> {
@@ -26,14 +25,9 @@ export async function getAudioUrl(
       return { ok: false, reason: 'unsupported_content_type' }
     }
 
-    const response = await httpClient.post<GetAudioUrlResponse>(
-      '/learning/presigned-url',
+    const response = await proxyApiClient.post<GetAudioUrlResponse>(
+      '/proxy-api/learning/presigned-url',
       { attemptId, contentType },
-      {
-        headers: {
-          Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-        },
-      },
     )
 
     return { ok: true, data: response.data?.data }

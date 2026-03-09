@@ -5,29 +5,23 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
-import { useCardDetails, useFeedbackPolling } from '@/features/levelup-feedback'
+import { useCardDetails, useFeedbackStream } from '@/features/levelup-feedback'
 
 const FAILED_REDIRECT_DELAY_MS = 3000
 const MAX_ATTEMPTS = 5
+const MAIN_PAGE_PATH = '/main'
 
 type LevelUpFeedbackControllerDeps = {
-  accessToken: string | null
   createAttempt: (
-    accessToken: string,
     cardId: number,
     initialDurationSeconds: number,
   ) => Promise<{ ok: boolean; data?: { attemptId?: number; attemptNo?: number } }>
-  deleteAttempt: (
-    accessToken: string,
-    cardId: number,
-    attemptId: number,
-  ) => Promise<{ ok: boolean }>
+  deleteAttempt: (cardId: number, attemptId: number) => Promise<{ ok: boolean }>
   initialAttemptDurationSeconds: number
   onIncreaseActiveCardCount: () => void
 }
 
 export function useLevelUpFeedbackController({
-  accessToken,
   createAttempt,
   deleteAttempt,
   initialAttemptDurationSeconds,
@@ -35,18 +29,17 @@ export function useLevelUpFeedbackController({
 }: LevelUpFeedbackControllerDeps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [isExitAlertOpen, setIsExitAlertOpen] = useState(false)
   const [isCreatingAttempt, setIsCreatingAttempt] = useState(false)
   const cardId = Number(searchParams.get('cardId') ?? '')
   const attemptId = Number(searchParams.get('attemptId') ?? '')
-  const { data } = useCardDetails(accessToken ?? '', cardId)
+  const { data } = useCardDetails(cardId)
 
   const deleteAttemptMutation = useMutation({
     mutationFn: async () => {
-      if (!accessToken || !cardId || !attemptId) {
+      if (!cardId || !attemptId) {
         throw new Error('missing_params')
       }
-      const result = await deleteAttempt(accessToken, cardId, attemptId)
+      const result = await deleteAttempt(cardId, attemptId)
       if (!result.ok) {
         throw new Error('delete_failed')
       }
@@ -61,18 +54,18 @@ export function useLevelUpFeedbackController({
     } catch {
       toast.error('삭제에 실패했습니다. 다시 시도해주세요.')
     }
-    router.push('/main')
+    router.push(MAIN_PAGE_PATH)
   }, [deleteAttemptMutation, router])
 
   const handleFailed = useCallback(() => {
     toast.error('피드백 생성에 실패했습니다. 다시 시도해주세요.')
     window.setTimeout(() => {
-      router.push('/main')
+      router.push(MAIN_PAGE_PATH)
     }, FAILED_REDIRECT_DELAY_MS)
   }, [router])
 
-  const { status, processingStep, feedbackData } = useFeedbackPolling({
-    accessToken,
+  // 기존 polling 훅 대신 SSE 기반 훅으로 상태/step/결과 데이터를 수신한다.
+  const { status, processingStep, feedbackData } = useFeedbackStream({
     cardId,
     attemptId,
     onTimeout: handleTimeout,
@@ -83,22 +76,15 @@ export function useLevelUpFeedbackController({
   const remainingAttempts =
     feedbackData.length > 0 ? Math.max(0, MAX_ATTEMPTS - feedbackAttemptNo) : '-'
 
-  const handleBack = () => {
-    setIsExitAlertOpen(true)
-  }
+  const handleBack = () => router.push(MAIN_PAGE_PATH)
 
   const handleRestudyClick = async () => {
     if (!cardId) {
       toast.error('카드 정보를 찾을 수 없습니다.')
       return
     }
-    if (!accessToken) {
-      toast.error('로그인이 필요합니다.')
-      return
-    }
-
     setIsCreatingAttempt(true)
-    const response = await createAttempt(accessToken, cardId, initialAttemptDurationSeconds)
+    const response = await createAttempt(cardId, initialAttemptDurationSeconds)
     setIsCreatingAttempt(false)
     if (!response.ok) {
       toast.error('학습 시작을 준비하지 못했습니다. 다시 시도해주세요.')
@@ -117,27 +103,11 @@ export function useLevelUpFeedbackController({
     )
   }
 
-  const handleExitConfirm = async () => {
-    if (feedbackData.length === 0) {
-      try {
-        await deleteAttemptMutation.mutateAsync()
-      } catch {
-        toast.error('삭제에 실패했습니다. 다시 시도해주세요.')
-        return
-      }
-    }
-    router.push('/main')
-  }
-
-  const handleExitCancel = () => {
-    setIsExitAlertOpen(false)
-  }
-
   const handleEndLearning = () => {
     if (status === 'COMPLETED') {
       onIncreaseActiveCardCount()
     }
-    router.replace('/main')
+    router.replace(MAIN_PAGE_PATH)
   }
 
   const isRestudyDisabled = remainingAttempts === 0 || isCreatingAttempt
@@ -148,13 +118,9 @@ export function useLevelUpFeedbackController({
     processingStep,
     feedbackData,
     remainingAttempts,
-    isExitAlertOpen,
-    setIsExitAlertOpen,
     isRestudyDisabled,
     handleBack,
     handleRestudyClick,
     handleEndLearning,
-    handleExitConfirm,
-    handleExitCancel,
   }
 }

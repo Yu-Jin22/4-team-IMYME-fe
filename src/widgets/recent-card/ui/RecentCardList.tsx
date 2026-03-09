@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 
 import { Card, deleteCard } from '@/entities/card'
 import { useOptimisticActiveCardCount, useUserId } from '@/entities/user'
-import { useAccessToken } from '@/features/auth'
 import { useMyCardList } from '@/features/my-card'
 import { formatDate, StatusMessage } from '@/shared'
 
@@ -14,10 +13,9 @@ const ACTIVE_CARD_COUNT_DECREMENT = -1
 
 export function RecentCardList() {
   const router = useRouter()
-  const accessToken = useAccessToken()
   const userId = useUserId()
   const { applyDeltaWithRollback } = useOptimisticActiveCardCount()
-  const { data = [], isLoading, error, refetch } = useMyCardList(accessToken, userId, RECENT_LIMIT)
+  const { data = [], isLoading, error, refetch } = useMyCardList(userId, RECENT_LIMIT)
 
   if (isLoading) {
     return <StatusMessage message="학습 기록을 불러오는 중입니다..." />
@@ -45,7 +43,7 @@ export function RecentCardList() {
           onClick={() => router.push('/mypage')}
           onDelete={async () => {
             const rollback = applyDeltaWithRollback(ACTIVE_CARD_COUNT_DECREMENT)
-            const deleted = await deleteCard(accessToken, card.id)
+            const deleted = await deleteCard(card.id)
             if (deleted) {
               await refetch()
               return

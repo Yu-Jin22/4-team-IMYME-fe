@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
 import { CancelButton, ConfirmButton, HelperText } from '@/shared'
 import {
@@ -31,6 +31,45 @@ const FIELD_LABEL_TEXT = '카드 이름'
 const FIELD_DESCRIPTION_TEXT = '20자 이하의 문자열로 작성해주세요.'
 const INPUT_PLACEHOLDER = '카드 이름을 입력해 주세요.'
 
+type SelectedInfoProps = {
+  selectedCategoryName: string | null
+  selectedKeywordName: string | null
+}
+
+const SelectedInfo = memo(function SelectedInfo({
+  selectedCategoryName,
+  selectedKeywordName,
+}: SelectedInfoProps) {
+  return (
+    <div className="bg-primary rounded-2xl p-4 text-white">
+      <p>선택한 카테고리: {selectedCategoryName}</p>
+      <p>선택한 키워드: {selectedKeywordName}</p>
+    </div>
+  )
+})
+
+type CardNameModalFooterProps = {
+  isConfirmDisabled: boolean
+  onConfirmClick: () => void
+  onCancel: () => void
+}
+
+const CardNameModalFooter = memo(function CardNameModalFooter({
+  isConfirmDisabled,
+  onConfirmClick,
+  onCancel,
+}: CardNameModalFooterProps) {
+  return (
+    <DialogFooter className="flex w-full flex-row justify-center gap-3 sm:gap-5">
+      <ConfirmButton
+        disabled={isConfirmDisabled}
+        onClick={onConfirmClick}
+      />
+      <CancelButton onClick={onCancel} />
+    </DialogFooter>
+  )
+})
+
 export function CardNameModal({
   open,
   onOpenChange,
@@ -40,8 +79,16 @@ export function CardNameModal({
   onConfirm,
 }: CardNameModalProps) {
   const [cardName, setCardName] = useState('')
+  const cardNameRef = useRef(cardName)
   const validation = validateCardName(cardName)
   const isConfirmDisabled = validation.ok ? false : true
+  useEffect(() => {
+    cardNameRef.current = cardName
+  }, [cardName])
+
+  const handleConfirmClick = useCallback(() => {
+    onConfirm(cardNameRef.current)
+  }, [onConfirm])
 
   return (
     <Dialog
@@ -54,10 +101,10 @@ export function CardNameModal({
           <DialogDescription>{DESCRIPTION_TEXT}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center self-center text-left">
-          <div className="bg-primary rounded-2xl p-4 text-white">
-            <p>선택한 카테고리: {selectedCategoryName}</p>
-            <p>선택한 키워드: {selectedKeywordName}</p>
-          </div>
+          <SelectedInfo
+            selectedCategoryName={selectedCategoryName}
+            selectedKeywordName={selectedKeywordName}
+          />
           <div className="my-4 flex w-full max-w-8/10 flex-col items-center">
             <Field>
               <FieldLabel
@@ -82,13 +129,11 @@ export function CardNameModal({
             </Field>
           </div>
         </div>
-        <DialogFooter className="flex w-full flex-row justify-center gap-3 sm:gap-5">
-          <ConfirmButton
-            disabled={isConfirmDisabled}
-            onClick={() => onConfirm(cardName)}
-          />
-          <CancelButton onClick={onCancel} />
-        </DialogFooter>
+        <CardNameModalFooter
+          isConfirmDisabled={isConfirmDisabled}
+          onConfirmClick={handleConfirmClick}
+          onCancel={onCancel}
+        />
       </DialogContent>
     </Dialog>
   )

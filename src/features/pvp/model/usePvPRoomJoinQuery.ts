@@ -10,24 +10,20 @@ type UsePvPRoomJoinQueryOptions = {
   enabled?: boolean
 }
 
-export function usePvPRoomJoinQuery(
-  accessToken: string | null,
-  roomId: number,
-  options: UsePvPRoomJoinQueryOptions = {},
-) {
+export function usePvPRoomJoinQuery(roomId: number, options: UsePvPRoomJoinQueryOptions = {}) {
   const isInvalidRoomId = Number.isNaN(roomId)
   const enabled = options.enabled ?? true
 
   return useQuery({
     queryKey: getPvPRoomJoinQueryKey(roomId),
-    enabled: enabled && Boolean(accessToken) && !isInvalidRoomId,
+    enabled: enabled && !isInvalidRoomId,
     refetchOnMount: false,
     queryFn: async () => {
-      if (!accessToken || isInvalidRoomId) {
+      if (isInvalidRoomId) {
         return { ok: false as const, reason: 'invalid_request' as const }
       }
 
-      return joinPvPRoom(accessToken, roomId)
+      return joinPvPRoom(roomId)
     },
   })
 }

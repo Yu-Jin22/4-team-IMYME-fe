@@ -2,15 +2,11 @@ import { useQueries, useQuery } from '@tanstack/react-query'
 
 import { getAttemptDetails } from '../api/getAttemptDetails'
 
-export function useAttemptDetails(
-  accessToken: string,
-  cardId: number | undefined,
-  attemptId: number | undefined,
-) {
+export function useAttemptDetails(cardId: number | undefined, attemptId: number | undefined) {
   return useQuery({
-    queryKey: ['attemptDetails', cardId, attemptId, accessToken],
-    queryFn: () => getAttemptDetails(accessToken, cardId, attemptId),
-    enabled: Boolean(accessToken) && Boolean(cardId) && Boolean(attemptId),
+    queryKey: ['attemptDetails', cardId, attemptId],
+    queryFn: () => getAttemptDetails(cardId, attemptId),
+    enabled: Boolean(cardId) && Boolean(attemptId),
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: 'always',
@@ -22,12 +18,12 @@ type AttemptParams = {
   attemptId: number
 }
 
-export function useAttemptDetailsList(accessToken: string, attempts: AttemptParams[]) {
+export function useAttemptDetailsList(attempts: AttemptParams[]) {
   return useQueries({
     queries: attempts.map((attempt) => ({
-      queryKey: ['attemptDetails', attempt.cardId, attempt.attemptId, accessToken],
-      queryFn: () => getAttemptDetails(accessToken, attempt.cardId, attempt.attemptId),
-      enabled: Boolean(accessToken) && Boolean(attempt.cardId) && Boolean(attempt.attemptId),
+      queryKey: ['attemptDetails', attempt.cardId, attempt.attemptId],
+      queryFn: () => getAttemptDetails(attempt.cardId, attempt.attemptId),
+      enabled: Boolean(attempt.cardId) && Boolean(attempt.attemptId),
       staleTime: 0,
       gcTime: 0,
       refetchOnMount: 'always' as const,

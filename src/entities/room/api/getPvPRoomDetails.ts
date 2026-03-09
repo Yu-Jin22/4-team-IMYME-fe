@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared/api'
+import { proxyApiClient } from '@/shared/api'
 
 import type { PvPRoomDetails } from './createPvPRoom'
 
@@ -9,16 +9,11 @@ type GetPvPRoomDetailsResponse = {
   timestamp?: string
 }
 
-export async function getPvPRoomDetails(
-  accessToken: string,
-  roomId: number,
-): Promise<PvPRoomDetails | null> {
+export async function getPvPRoomDetails(roomId: number): Promise<PvPRoomDetails | null> {
   try {
-    const response = await httpClient.get<GetPvPRoomDetailsResponse>(`/pvp/rooms/${roomId}`, {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
-    })
+    const response = await proxyApiClient.get<GetPvPRoomDetailsResponse>(
+      `/proxy-api/pvp/rooms/${roomId}`,
+    )
 
     return response.data?.data ?? null
   } catch (error) {

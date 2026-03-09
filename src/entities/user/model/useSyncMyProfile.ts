@@ -7,13 +7,15 @@ import { useProfile, useSetProfile } from './useUserStore'
 import type { UserProfile } from './userProfile'
 
 type UseSyncMyProfileParams = {
-  accessToken: string | null
   myProfile?: UserProfile
+  initialProfile?: UserProfile | null
 }
 
-export function useSyncMyProfile({ accessToken, myProfile }: UseSyncMyProfileParams) {
+export function useSyncMyProfile({ myProfile, initialProfile }: UseSyncMyProfileParams) {
   const profile = useProfile()
   const setProfile = useSetProfile()
+  // client query가 있으면 그 값을 우선하고, 없으면 서버 주입값을 fallback으로 동기화한다.
+  const profileToSync = myProfile ?? initialProfile
 
   const stripQuery = (url: string) => {
     if (!url) return ''
@@ -26,20 +28,20 @@ export function useSyncMyProfile({ accessToken, myProfile }: UseSyncMyProfilePar
   }
 
   const hasSameProfileFields =
-    profile.id === myProfile?.id &&
-    profile.nickname === myProfile?.nickname &&
-    profile.level === myProfile?.level &&
-    profile.activeCardCount === myProfile?.activeCardCount &&
-    profile.consecutiveDays === myProfile?.consecutiveDays &&
-    profile.winCount === myProfile?.winCount
+    profile.id === profileToSync?.id &&
+    profile.nickname === profileToSync?.nickname &&
+    profile.level === profileToSync?.level &&
+    profile.activeCardCount === profileToSync?.activeCardCount &&
+    profile.consecutiveDays === profileToSync?.consecutiveDays &&
+    profile.winCount === profileToSync?.winCount
 
   // store 동기화는 "필요할 때만" (그리고 같은 값이면 안 넣기)
   useEffect(() => {
-    // 토큰/데이터 없으면 동기화하지 않음
-    if (!accessToken || !myProfile) return
+    // query 값이나 서버 주입값이 없으면 동기화하지 않음
+    if (!profileToSync) return
     // 이미 같은 프로필이면 불필요한 상태 업데이트 방지
     const curBase = stripQuery(profile.profileImageUrl)
-    const nextBase = stripQuery(myProfile.profileImageUrl)
+    const nextBase = stripQuery(profileToSync.profileImageUrl)
     const hasSameImageBase = Boolean(curBase) && curBase === nextBase
 
     // 프로필의 실질 데이터와 이미지 파일 base가 모두 같을 때만 store 업데이트를 생략한다.
@@ -49,8 +51,8 @@ export function useSyncMyProfile({ accessToken, myProfile }: UseSyncMyProfilePar
 
     // 같은 파일의 presigned URL만 바뀐 경우에는 기존 URL을 유지해 불필요한 src swap을 줄인다.
     setProfile({
-      ...myProfile,
-      profileImageUrl: hasSameImageBase ? profile.profileImageUrl : myProfile.profileImageUrl,
+      ...profileToSync,
+      profileImageUrl: hasSameImageBase ? profile.profileImageUrl : profileToSync.profileImageUrl,
     })
-  }, [accessToken, hasSameProfileFields, myProfile, profile.profileImageUrl, setProfile])
+  }, [hasSameProfileFields, profile.profileImageUrl, profileToSync, setProfile])
 }
