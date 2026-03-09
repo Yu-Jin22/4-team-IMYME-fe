@@ -14,6 +14,7 @@ type MicrophoneBoxProps = {
   isRecording: boolean
   isPaused: boolean
   getElapsedSeconds: () => number
+  minimumRecordingSecondsBeforeStop?: number
 }
 
 const WRAPPER_CLASSNAME = 'mt-4 flex w-full flex-col items-center'
@@ -27,6 +28,7 @@ const PAUSED_LABEL_CLASSNAME = 'text-sm text-red-500'
 const SECONDS_PER_MINUTE = 60
 const TIME_PAD_LENGTH = 2
 const ELAPSED_TIME_TICK_MS = 500
+const DEFAULT_MINIMUM_RECORDING_SECONDS_BEFORE_STOP = 0
 
 const formatElapsedTime = (totalSeconds: number) => {
   const minutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE)
@@ -45,6 +47,7 @@ export function MicrophoneBox({
   isRecording,
   isPaused,
   getElapsedSeconds,
+  minimumRecordingSecondsBeforeStop = DEFAULT_MINIMUM_RECORDING_SECONDS_BEFORE_STOP,
 }: MicrophoneBoxProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const displayedElapsedSeconds = isRecording ? elapsedSeconds : 0
@@ -63,7 +66,13 @@ export function MicrophoneBox({
     }
   }, [getElapsedSeconds, isPaused, isRecording])
 
-  const micIconClassName = isMicDisabled ? MIC_ICON_DISABLED_CLASSNAME : MIC_ICON_ACTIVE_CLASSNAME
+  const isStopBlockedByMinimumDuration =
+    isRecording && displayedElapsedSeconds < minimumRecordingSecondsBeforeStop
+  const isButtonDisabled = isStartingWarmup || isMicDisabled || isStopBlockedByMinimumDuration
+
+  const micIconClassName = isButtonDisabled
+    ? MIC_ICON_DISABLED_CLASSNAME
+    : MIC_ICON_ACTIVE_CLASSNAME
   const recordingLabel = `녹음 중... ${formatElapsedTime(displayedElapsedSeconds)}`
 
   return (
@@ -76,7 +85,7 @@ export function MicrophoneBox({
           type="button"
           className="border-secondary flex h-40 w-40 items-center justify-center rounded-full border-4"
           onClick={onMicClick}
-          disabled={isStartingWarmup || isMicDisabled}
+          disabled={isButtonDisabled}
         >
           {isPaused ? (
             <CircleStop
