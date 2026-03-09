@@ -24,6 +24,8 @@ const CREATE_SUBMISSION_ERROR_MESSAGE =
 const UPLOAD_SUBMISSION_ERROR_MESSAGE = '오디오 업로드에 실패했습니다. 다시 시도해주세요.'
 const COMPLETE_SUBMISSION_ERROR_MESSAGE =
   '오디오 업로드 완료 처리에 실패했습니다. 다시 시도해주세요.'
+const MINIMUM_SUBMIT_DURATION_SECONDS = 1
+const TOO_SHORT_RECORDING_ERROR_MESSAGE = '1초 이상 녹음한 뒤 제출해주세요.'
 
 const getFileExtensionFromContentType = (contentType: string) => {
   if (contentType === 'audio/mp4') return FILE_NAME_EXTENSION_MP4
@@ -196,6 +198,12 @@ export function usePvPRecordController({
       const completedBlob = await stopRecordingAndGetBlob()
       if (!completedBlob) {
         toast.error(EMPTY_BLOB_ERROR_MESSAGE)
+        return
+      }
+
+      const durationSeconds = getDurationSeconds()
+      if (durationSeconds < MINIMUM_SUBMIT_DURATION_SECONDS) {
+        toast.error(TOO_SHORT_RECORDING_ERROR_MESSAGE)
         return
       }
 
