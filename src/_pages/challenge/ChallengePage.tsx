@@ -1,9 +1,10 @@
 'use client'
 import { useRouter } from 'next/navigation'
 
-import { ChallengeKeywordCard, useChallengeRecordController } from '@/features/challenge'
 import { MicrophoneBox } from '@/features/record'
 import { Button, ModeHeader, RecordTipBox } from '@/shared'
+
+import { ChallengeKeywordCard, useChallengeRecordController } from '@/features/challenge'
 
 export function ChallengePage() {
   const router = useRouter()
