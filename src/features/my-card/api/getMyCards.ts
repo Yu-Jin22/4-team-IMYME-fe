@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared'
+import { proxyApiClient } from '@/shared/api'
 
 export type MyCardItem = {
   id: number
@@ -16,16 +16,18 @@ type MyCardsResponse = {
   }
 }
 
-export async function getMyCards(accessToken: string, limit?: number): Promise<MyCardItem[]> {
-  try {
-    const response = await httpClient.get<MyCardsResponse>('/cards', {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
-      params: { ...(limit ? { limit } : {}), ghost: false },
-    })
+const MY_CARDS_PROXY_PATH = '/proxy-api/cards'
 
-    return response.data?.data?.cards ?? []
+export async function getMyCards(limit?: number): Promise<MyCardItem[]> {
+  try {
+    const response = await proxyApiClient.get<MyCardsResponse>(MY_CARDS_PROXY_PATH, {
+      params: {
+        ...(limit ? { limit } : {}),
+        ghost: false,
+      },
+    })
+    const payload = response.data
+    return payload.data?.cards ?? []
   } catch (error) {
     console.error('Failed to fetch cards', error)
     return []

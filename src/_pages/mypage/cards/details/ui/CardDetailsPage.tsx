@@ -4,21 +4,18 @@ import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { useAccessToken } from '@/features/auth'
+import { INITIAL_ATTEMPT_DURATION_SECONDS } from '@/features/levelup'
 import { FeedbackTab, useCardDetails } from '@/features/levelup-feedback'
 import { useFeedbackData, CardInfo } from '@/features/levelup-feedback'
 import { createAttempt } from '@/features/record'
-import { LevelUpHeader, SubjectHeader, formatDate, Button } from '@/shared'
-
-const INITIAL_ATTEMPT_DURATION_SECONDS = 0
+import { ModeHeader, SubjectHeader, formatDate, Button } from '@/shared'
 
 export function CardDetailsPage() {
   const router = useRouter()
   const params = useParams()
   const cardIdParam = params.id?.toString()
   const cardId = cardIdParam ? Number(cardIdParam) : undefined
-  const accessToken = useAccessToken()
-  const { data } = useCardDetails(accessToken, cardId)
+  const { data } = useCardDetails(cardId)
   const { feedbackData } = useFeedbackData(data ?? null)
   const [isCreatingAttempt, setIsCreatingAttempt] = useState(false)
   const [selectedAttemptNo, setSelectedAttemptNo] = useState<number | null>(null)
@@ -30,13 +27,8 @@ export function CardDetailsPage() {
       toast.error('카드 정보를 찾을 수 없습니다.')
       return
     }
-    if (!accessToken) {
-      toast.error('로그인이 필요합니다.')
-      return
-    }
-
     setIsCreatingAttempt(true)
-    const response = await createAttempt(accessToken, cardId, INITIAL_ATTEMPT_DURATION_SECONDS)
+    const response = await createAttempt(cardId, INITIAL_ATTEMPT_DURATION_SECONDS)
     setIsCreatingAttempt(false)
     if (!response.ok) {
       toast.error('학습 시작을 준비하지 못했습니다. 다시 시도해주세요.')
@@ -55,11 +47,10 @@ export function CardDetailsPage() {
 
   return (
     <div className="flex h-full w-full flex-1 flex-col">
-      <LevelUpHeader
-        variant="feedback"
+      <ModeHeader
+        mode="levelup"
+        step="feedback"
         onBack={() => router.back()}
-        progressValue={0}
-        stepLabel={''}
         title={data?.title}
       />
       <SubjectHeader

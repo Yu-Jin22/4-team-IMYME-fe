@@ -16,17 +16,23 @@ const buttonVariants = cva(
         secondary: 'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
-        login: 'btn-login',
-        modal_btn_primary: 'modal-btn-primary',
-        mode_btn_primary: 'mode-btn-primary',
+        login: 'bg-primary text-white',
+        modal_btn_primary:
+          'h-[50px] w-[250px] border border-[rgb(var(--color-primary))] bg-[rgb(var(--color-background))] text-[rgb(var(--color-primary))] hover:bg-primary hover:text-[rgb(var(--color-primary-foreground))] active:bg-primary active:text-[rgb(var(--color-primary-foreground))]',
+        mode_btn_primary:
+          'inline-flex min-h-[120px] min-w-[350px] cursor-pointer items-center justify-evenly self-center gap-2 border border-[rgb(var(--color-primary))] bg-white text-[rgb(var(--color-primary))] shadow-[0_-2px_1px_rgba(255,255,255,1),0_2px_1px_rgba(0,0,0,0.1)]',
         see_more:
           'bg-background max-w-8 max-h-4 text-sm text-black/50 ml-auto mr-10 cursor-pointer',
         filter_btn: 'w-full bg-secondary text-primary  border-primary cursor-pointer',
-        confirm_btn_primary: 'confirm-btn-primary',
-        cancel_btn_primary: 'cancel-btn-primary',
-        record_confirm_btn: 'record-confirm-btn',
+        confirm_btn_primary:
+          'h-10 w-[100px] border border-[rgb(var(--color-primary))] text-[rgb(var(--color-primary))] hover:bg-primary hover:text-[rgb(var(--color-primary-foreground))] active:bg-primary active:text-[rgb(var(--color-primary-foreground))]',
+        cancel_btn_primary:
+          'h-10 w-[100px] border border-red-500 text-red-500 hover:bg-red-500 hover:text-white active:bg-red-500 active:text-white',
+        record_confirm_btn: 'h-10 w-[360px] bg-secondary',
         carousel_btn: 'bg-background cursor-pointer',
         levelup_feedback_btn: 'bg-secondary w-40 h-10 rounded-2xl',
+        matching_method_btn: 'w-80 h-20 min-h-20 border-secondary border rounded-xl gap-6',
+        pvp_room_enter_btn: 'text-black/50 cursor-pointer pr-4',
       },
       size: {
         default: 'h-9 px-4 py-2',

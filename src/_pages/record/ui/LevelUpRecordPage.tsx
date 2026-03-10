@@ -1,36 +1,115 @@
 'use client'
 
-import { FeedbackLoader } from '@/features/levelup-feedback'
-import { MicrophoneBox, useLevelUpRecordController } from '@/features/record'
-import { LevelUpHeader, AlertModal, RecordTipBox, SubjectHeader, Button } from '@/shared'
+import { useSearchParams } from 'next/navigation'
+import { memo, useEffect, useState } from 'react'
+
+import { useCardDetails } from '@/features/levelup-feedback'
+import { MicrophoneBox, MicrophoneBoxSkeleton, useLevelUpRecordController } from '@/features/record'
+import { AlertModal, Button, ModeHeader, RecordTipBox, StatusLoader, SubjectHeader } from '@/shared'
+
+import { useLevelUpRecordExitGuard } from '../model/useLevelUpRecordExitGuard'
+
+import type { CardDetails } from '@/features/levelup-feedback'
 
 const RECORD_PROGRESS_VALUE = 100
 const RECORD_STEP_LABEL = '3/3'
-export function LevelUpRecordPage() {
+const MINIMUM_SUBMIT_DURATION_SECONDS = 1
+const SUBMIT_ELAPSED_POLL_INTERVAL_MS = 500
+
+type RecordSubmitButtonProps = {
+  onComplete: () => Promise<void>
+  isSubmitting: boolean
+  isRecording: boolean
+  recordedBlob: Blob | null
+  getElapsedSeconds: () => number
+}
+
+function parseOptionalNumber(value: string | null): number | undefined {
+  if (!value) return undefined
+
+  const parsedValue = Number(value)
+  return Number.isNaN(parsedValue) ? undefined : parsedValue
+}
+
+type LevelUpRecordPageProps = {
+  initialCardDetails?: CardDetails | null
+}
+
+const RecordSubmitButton = memo(function RecordSubmitButton({
+  onComplete,
+  isSubmitting,
+  isRecording,
+  recordedBlob,
+  getElapsedSeconds,
+}: RecordSubmitButtonProps) {
+  const [hasMinimumDuration, setHasMinimumDuration] = useState(false)
+
+  useEffect(() => {
+    const timerId = window.setInterval(() => {
+      const nextHasMinimumDuration = getElapsedSeconds() >= MINIMUM_SUBMIT_DURATION_SECONDS
+      setHasMinimumDuration((previousHasMinimumDuration) =>
+        previousHasMinimumDuration === nextHasMinimumDuration
+          ? previousHasMinimumDuration
+          : nextHasMinimumDuration,
+      )
+    }, SUBMIT_ELAPSED_POLL_INTERVAL_MS)
+
+    return () => {
+      window.clearInterval(timerId)
+    }
+  }, [getElapsedSeconds])
+
+  const hasRecordedSource = isRecording || Boolean(recordedBlob)
+  const isSubmitDisabled = isSubmitting || !hasRecordedSource || !hasMinimumDuration
+
+  return (
+    <div className="mt-auto mb-6 flex w-full items-center justify-center gap-4 pt-4">
+      <Button
+        variant="record_confirm_btn"
+        onClick={onComplete}
+        disabled={isSubmitDisabled}
+      >
+        녹음 완료 및 피드백 받기
+      </Button>
+    </div>
+  )
+})
+
+export function LevelUpRecordPage({ initialCardDetails }: LevelUpRecordPageProps) {
+  const searchParams = useSearchParams()
+  const cardId = parseOptionalNumber(searchParams.get('cardId'))
+  const attemptId = parseOptionalNumber(searchParams.get('attemptId'))
+  const attemptNo = parseOptionalNumber(searchParams.get('attemptNo'))
+  const cardDetailsQuery = useCardDetails(cardId, { initialData: initialCardDetails })
+  const { data } = cardDetailsQuery
+
   const {
-    data,
     isSubmittingFeedback,
     uploadStatus,
     isStartingWarmup,
     warmupError,
     isMicAlertOpen,
-    isBackAlertOpen,
     isRecording,
     isPaused,
-    elapsedSeconds,
+    getElapsedSeconds,
     recordedBlob,
     handleMicClick,
-    handleBackConfirm,
-    handleBackCancel,
     handleMicAlertOpenChange,
-    handleBackAlertOpenChange,
     handleRecordingComplete,
-  } = useLevelUpRecordController()
+  } = useLevelUpRecordController({
+    cardId,
+    attemptId,
+    attemptNo,
+  })
+  const { isBackAlertOpen, handleBackConfirm, handleBackCancel, handleBackAlertOpenChange } =
+    useLevelUpRecordExitGuard()
+  const shouldShowMicrophoneSkeleton = cardDetailsQuery.isLoading
 
   return (
     <div className="flex h-full w-full flex-1 flex-col">
-      <LevelUpHeader
-        variant="recording"
+      <ModeHeader
+        mode="levelup"
+        step="recording"
         onBack={() => handleBackAlertOpenChange(true)}
         progressValue={RECORD_PROGRESS_VALUE}
         stepLabel={RECORD_STEP_LABEL}
@@ -41,7 +120,9 @@ export function LevelUpRecordPage() {
         keywordValue={data?.keywordName ?? ''}
       />
       {isSubmittingFeedback || uploadStatus === 'PENDING' ? (
-        <FeedbackLoader status="PENDING" />
+        <StatusLoader status="PENDING" />
+      ) : shouldShowMicrophoneSkeleton ? (
+        <MicrophoneBoxSkeleton />
       ) : (
         <MicrophoneBox
           isStartingWarmup={isStartingWarmup}
@@ -53,19 +134,17 @@ export function LevelUpRecordPage() {
           isMicDisabled={Boolean(recordedBlob)}
           isRecording={isRecording}
           isPaused={isPaused}
-          elapsedSeconds={elapsedSeconds}
+          getElapsedSeconds={getElapsedSeconds}
         />
       )}
       <RecordTipBox />
-      <div className="mt-auto mb-6 flex w-full items-center justify-center gap-4 pt-4">
-        <Button
-          variant="record_confirm_btn"
-          onClick={handleRecordingComplete}
-          disabled={isSubmittingFeedback}
-        >
-          녹음 완료 및 피드백 받기
-        </Button>
-      </div>
+      <RecordSubmitButton
+        onComplete={handleRecordingComplete}
+        isSubmitting={isSubmittingFeedback}
+        isRecording={isRecording}
+        recordedBlob={recordedBlob}
+        getElapsedSeconds={getElapsedSeconds}
+      />
       <AlertModal
         open={isBackAlertOpen}
         onOpenChange={handleBackAlertOpenChange}

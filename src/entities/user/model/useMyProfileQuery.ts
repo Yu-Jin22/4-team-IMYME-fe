@@ -16,27 +16,28 @@ type UseMyProfileQueryResult = {
   isError: boolean
 }
 
-export function useMyProfileQuery(
-  accessToken: string | null,
-  options?: UseMyProfileQueryOptions,
-): UseMyProfileQueryResult {
+export function useMyProfileQuery(options?: UseMyProfileQueryOptions): UseMyProfileQueryResult {
+  // 외부에서 쿼리 활성/비활성 제어
   const enabled = options?.enabled ?? true
 
   const query = useQuery({
-    queryKey: ['myProfile', accessToken],
+    queryKey: ['myProfile'],
+    enabled,
     queryFn: async () => {
-      if (!accessToken) {
-        return undefined
-      }
-      const result = await getMyProfile(accessToken)
+      const result = await getMyProfile()
       if (!result.ok) {
         throw new Error(result.reason)
       }
       return result.data
     },
-    enabled,
+    // 1분 동안은 fresh로 간주해 불필요한 재요청 방지
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   })
 
+  // 컴포넌트에 필요한 최소 상태만 반환
   return {
     data: query.data,
     isLoading: query.isLoading,

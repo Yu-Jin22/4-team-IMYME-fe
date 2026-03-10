@@ -2,10 +2,20 @@ import { useQuery } from '@tanstack/react-query'
 
 import { getCardDetails } from '../api/getCardDetails'
 
-export function useCardDetails(accessToken: string, cardId: number | undefined) {
-  return useQuery({
+import type { CardDetails } from '../api/getCardDetails'
+
+type UseCardDetailsOptions = {
+  initialData?: CardDetails | null
+}
+
+export function useCardDetails(
+  cardId: number | undefined,
+  { initialData }: UseCardDetailsOptions = {},
+) {
+  return useQuery<CardDetails | null>({
     queryKey: ['cardDetails', cardId],
-    queryFn: () => getCardDetails(accessToken, cardId),
-    enabled: Boolean(accessToken) && Boolean(cardId),
+    queryFn: () => getCardDetails(cardId),
+    enabled: Boolean(cardId),
+    initialData,
   })
 }

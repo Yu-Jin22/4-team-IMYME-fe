@@ -1,10 +1,11 @@
 'use client'
 
 import { CircleStop, Mic } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 type MicrophoneBoxProps = {
-  isStartingWarmup: boolean
-  warmupError: boolean
+  isStartingWarmup?: boolean
+  warmupError?: boolean
   onMicClick: () => void
   title: string
   description: string
@@ -12,7 +13,8 @@ type MicrophoneBoxProps = {
   isMicDisabled: boolean
   isRecording: boolean
   isPaused: boolean
-  elapsedSeconds: number
+  getElapsedSeconds: () => number
+  minimumRecordingSecondsBeforeStop?: number
 }
 
 const WRAPPER_CLASSNAME = 'mt-4 flex w-full flex-col items-center'
@@ -25,6 +27,8 @@ const RECORDING_LABEL_CLASSNAME = 'text-sm text-red-500'
 const PAUSED_LABEL_CLASSNAME = 'text-sm text-red-500'
 const SECONDS_PER_MINUTE = 60
 const TIME_PAD_LENGTH = 2
+const ELAPSED_TIME_TICK_MS = 500
+const DEFAULT_MINIMUM_RECORDING_SECONDS_BEFORE_STOP = 0
 
 const formatElapsedTime = (totalSeconds: number) => {
   const minutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE)
@@ -42,10 +46,34 @@ export function MicrophoneBox({
   isMicDisabled,
   isRecording,
   isPaused,
-  elapsedSeconds,
+  getElapsedSeconds,
+  minimumRecordingSecondsBeforeStop = DEFAULT_MINIMUM_RECORDING_SECONDS_BEFORE_STOP,
 }: MicrophoneBoxProps) {
-  const micIconClassName = isMicDisabled ? MIC_ICON_DISABLED_CLASSNAME : MIC_ICON_ACTIVE_CLASSNAME
-  const recordingLabel = `녹음 중... ${formatElapsedTime(elapsedSeconds)}`
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const displayedElapsedSeconds = isRecording ? elapsedSeconds : 0
+
+  useEffect(() => {
+    if (!isRecording || isPaused) {
+      return
+    }
+
+    const timerId = window.setInterval(() => {
+      setElapsedSeconds(getElapsedSeconds())
+    }, ELAPSED_TIME_TICK_MS)
+
+    return () => {
+      window.clearInterval(timerId)
+    }
+  }, [getElapsedSeconds, isPaused, isRecording])
+
+  const isStopBlockedByMinimumDuration =
+    isRecording && displayedElapsedSeconds < minimumRecordingSecondsBeforeStop
+  const isButtonDisabled = isStartingWarmup || isMicDisabled || isStopBlockedByMinimumDuration
+
+  const micIconClassName = isButtonDisabled
+    ? MIC_ICON_DISABLED_CLASSNAME
+    : MIC_ICON_ACTIVE_CLASSNAME
+  const recordingLabel = `녹음 중... ${formatElapsedTime(displayedElapsedSeconds)}`
 
   return (
     <div className={WRAPPER_CLASSNAME}>
@@ -57,7 +85,7 @@ export function MicrophoneBox({
           type="button"
           className="border-secondary flex h-40 w-40 items-center justify-center rounded-full border-4"
           onClick={onMicClick}
-          disabled={isStartingWarmup || isMicDisabled}
+          disabled={isButtonDisabled}
         >
           {isPaused ? (
             <CircleStop

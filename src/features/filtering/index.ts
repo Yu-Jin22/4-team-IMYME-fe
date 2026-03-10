@@ -1,6 +1,6 @@
 export { useCategoryList } from './model/useCategoryList'
 export { getCategories } from './api/getCategories'
-export { useKeywordList } from './model/useKeywordList'
+export { getKeywordListQueryKey, useKeywordList } from './model/useKeywordList'
 export { getKeywords } from './api/getKeywords'
 export { useFilteringSelection } from './model/useFilteringSelection'
 export { CategoryList } from './ui/client/CategoryList'

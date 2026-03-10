@@ -3,12 +3,9 @@
 import { useRouter } from 'next/navigation'
 
 import { Card, deleteCard } from '@/entities/card'
-import { useOptimisticActiveCardCount } from '@/entities/user'
-import { useUserId } from '@/entities/user/model/useUserStore'
-import { useAccessToken } from '@/features/auth/model/client/useAuthStore'
-import { useMyCardList } from '@/features/my-card/model/useMyCardList'
-import { formatDate } from '@/shared'
-import { StatusMessage } from '@/shared/ui/StatusMessage'
+import { useOptimisticActiveCardCount, useUserId } from '@/entities/user'
+import { useMyCardList } from '@/features/my-card'
+import { formatDate, StatusMessage } from '@/shared'
 
 import type { CategoryItemType } from '@/entities/category'
 import type { KeywordItemType } from '@/entities/keyword'
@@ -23,10 +20,9 @@ type MyCardListProps = {
 
 export function MyCardList({ selectedCategory, selectedKeyword }: MyCardListProps) {
   const router = useRouter()
-  const accessToken = useAccessToken()
   const userId = useUserId()
   const { applyDeltaWithRollback } = useOptimisticActiveCardCount()
-  const { data, isLoading, error, refetch } = useMyCardList(accessToken, userId)
+  const { data, isLoading, error, refetch } = useMyCardList(userId)
 
   if (isLoading) {
     return <StatusMessage message="학습 기록을 불러오는 중입니다..." />
@@ -65,7 +61,7 @@ export function MyCardList({ selectedCategory, selectedKeyword }: MyCardListProp
           onClick={() => router.push(`/mypage/cards/${card.id}`)}
           onDelete={async () => {
             const rollback = applyDeltaWithRollback(ACTIVE_CARD_COUNT_DECREMENT)
-            const deleted = await deleteCard(accessToken, card.id)
+            const deleted = await deleteCard(card.id)
             if (deleted) {
               await refetch()
               return

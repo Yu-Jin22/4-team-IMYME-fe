@@ -1,51 +1,69 @@
 'use client'
 
 import { ChevronLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
-import { Avatar, Nickname, StatCards } from '@/entities/user'
-import { useProfile } from '@/entities/user/model/useUserStore'
+import {
+  Avatar,
+  Nickname,
+  StatCards,
+  useMyProfileQuery,
+  useProfile,
+  useSyncMyProfile,
+} from '@/entities/user'
+
+import type { UserProfile } from '@/entities/user'
 
 const AVATAR_SIZE_PX = 60
+const FALLBACK_NICKNAME = '로딩중...'
+const FALLBACK_STAT_VALUE = 0
+const MAIN_PAGE_PATH = '/main'
+const MY_PAGE_PATH = '/mypage'
 
 interface ProfileDashboardProps {
-  navigateToMyPage?: boolean
-  showBackButton?: boolean
+  // layout이 서버에서 먼저 가져온 프로필
+  initialProfile?: UserProfile | null
+  deferAvatarImageUntilProfileReady?: boolean
 }
 
 export function ProfileDashboard({
-  navigateToMyPage = true,
-  showBackButton = false,
+  initialProfile,
+  deferAvatarImageUntilProfileReady = false,
 }: ProfileDashboardProps) {
   const router = useRouter()
+  const pathname = usePathname()
 
   const profile = useProfile()
+  // hydration 이후에는 client query가 최신 프로필을 계속 가져온다.
+  const { data: myProfile } = useMyProfileQuery()
+  // 초기 서버 주입값 또는 최신 query 값을 store에도 동기화한다.
+  useSyncMyProfile({ myProfile, initialProfile })
+  // 첫 렌더는 initialProfile, 이후에는 query/store 순으로 사용한다.
+  const resolvedProfile = myProfile ?? initialProfile ?? profile
 
-  const handleNavigateToMyPage = () => {
-    if (!navigateToMyPage) {
-      return
-    }
-
-    router.push('/mypage')
-  }
-
-  const handleBackButton = () => {
-    if (!showBackButton) return
-
-    router.back()
-  }
+  const isMainPage = pathname === MAIN_PAGE_PATH
+  const isMyPage = pathname === MY_PAGE_PATH
+  // 닉네임 또는 이미지가 하나라도 있으면 프로필이 준비된 것으로 본다.
+  const isProfileReady = Boolean(resolvedProfile.nickname || resolvedProfile.profileImageUrl)
+  const shouldDeferAvatarImage = deferAvatarImageUntilProfileReady && !myProfile
+  const avatarSrcForRender = shouldDeferAvatarImage ? '' : resolvedProfile.profileImageUrl
 
   return (
     <div className="relative w-full">
       <div
-        className={['absolute rounded-md p-1', showBackButton ? '' : 'invisible'].join(' ')}
-        onClick={handleBackButton}
+        className={['absolute rounded-md p-1', isMyPage ? '' : 'invisible'].join(' ')}
+        onClick={() => {
+          router.push('/main')
+        }}
       >
         <ChevronLeft />
       </div>
+
       <div
         className="w-full cursor-pointer"
-        onClick={handleNavigateToMyPage}
+        onClick={() => {
+          if (isMainPage) router.push('/mypage')
+        }}
       >
         <div className="grid w-full auto-cols-max grid-flow-col items-start gap-4">
           <div
@@ -53,16 +71,17 @@ export function ProfileDashboard({
             style={{ width: AVATAR_SIZE_PX, height: AVATAR_SIZE_PX }}
           >
             <Avatar
-              avatar_src={profile.profileImageUrl}
+              avatar_src={avatarSrcForRender}
               size={AVATAR_SIZE_PX}
             />
           </div>
-          <Nickname nickname={profile.nickname} />
+          <Nickname nickname={isProfileReady ? resolvedProfile.nickname : FALLBACK_NICKNAME} />
         </div>
+
         <StatCards
-          cardCount={profile.activeCardCount}
-          dates={profile.consecutiveDays}
-          levelCount={profile.level}
+          cardCount={isProfileReady ? resolvedProfile.activeCardCount : FALLBACK_STAT_VALUE}
+          winCount={isProfileReady ? resolvedProfile.winCount : FALLBACK_STAT_VALUE}
+          levelCount={isProfileReady ? resolvedProfile.level : FALLBACK_STAT_VALUE}
         />
       </div>
     </div>

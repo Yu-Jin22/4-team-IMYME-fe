@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared'
+import { proxyApiClient } from '@/shared/api'
 
 type CreateAttemptResponse = {
   data?: {
@@ -17,19 +17,13 @@ type CreateAttemptResult =
   | { ok: false; reason: string }
 
 export async function createAttempt(
-  accessToken: string,
   cardId: number,
   durationSeconds: number,
 ): Promise<CreateAttemptResult> {
   try {
-    const response = await httpClient.post<CreateAttemptResponse>(
-      `/cards/${cardId}/attempts`,
+    const response = await proxyApiClient.post<CreateAttemptResponse>(
+      `/proxy-api/cards/${cardId}/attempts`,
       { durationSeconds },
-      {
-        headers: {
-          Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-        },
-      },
     )
 
     return { ok: true, data: response.data?.data }

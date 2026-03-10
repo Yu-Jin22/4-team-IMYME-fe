@@ -1,7 +1,6 @@
 import { type ChangeEvent, type FocusEvent, useState } from 'react'
 
-import { useNickname } from '@/entities/user/model/useUserStore'
-import { useAccessToken } from '@/features/auth/model/client/useAuthStore'
+import { useNickname } from '@/entities/user'
 import { checkNicknameAvailability, validateNickname } from '@/features/profile-edit'
 
 const ERROR_MESSAGES: Record<
@@ -29,7 +28,6 @@ const getAvailabilityErrorMessage = (reason: string | null) => {
 
 export function useNicknameForm() {
   const storeNickname = useNickname()
-  const accessToken = useAccessToken()
   const [nickname, setNickname] = useState('')
   const [error, setError] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -50,7 +48,7 @@ export function useNicknameForm() {
       return
     }
 
-    const availability = await checkNicknameAvailability(accessToken, trimmed)
+    const availability = await checkNicknameAvailability(trimmed)
     if (availability.ok) {
       if (!availability.isAvailable) {
         setError(true)

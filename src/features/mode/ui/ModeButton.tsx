@@ -9,6 +9,14 @@ const MODE_BUTTON_VARIANTS = {
     icon: '📝',
     label: '레벨업 모드',
   },
+  pvp: {
+    icon: '⚔️',
+    label: 'PVP 모드',
+  },
+  challenge: {
+    icon: '👑',
+    label: '챌린지 모드',
+  },
 } as const
 
 type ModeButtonVariant = keyof typeof MODE_BUTTON_VARIANTS

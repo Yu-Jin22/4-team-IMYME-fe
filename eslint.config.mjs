@@ -8,7 +8,7 @@ import globals from 'globals'
 const FILES_TO_LINT = ['**/*.{ts,tsx,js,jsx}']
 
 const config = [
-  { ignores: ['node_modules/*', 'dist/', '.vite/', '.next/'] },
+  { ignores: ['node_modules/*', 'dist/', '.vite/', '.next/', '.next-3001/'] },
   ...nextConfig,
   ...tseslint.configs['flat/recommended'],
   {

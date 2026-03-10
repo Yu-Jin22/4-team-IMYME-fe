@@ -2,11 +2,11 @@
 
 import { useMemo } from 'react'
 
-import { useAccessToken } from '@/features/auth/model/client/useAuthStore'
-import { useAttemptDetailsList } from '@/features/levelup-feedback'
-
-import type { CardDetails } from '@/features/levelup-feedback'
-import type { FeedbackItem } from '@/features/levelup-feedback/model/feedbackTypes'
+import {
+  useAttemptDetailsList,
+  type CardDetails,
+  type FeedbackItem,
+} from '@/features/levelup-feedback'
 
 type UseFeedbackDataResult = {
   feedbackData: FeedbackItem[]
@@ -14,8 +14,6 @@ type UseFeedbackDataResult = {
 }
 
 export function useFeedbackData(cardDetails: CardDetails | null): UseFeedbackDataResult {
-  const accessToken = useAccessToken()
-
   const attemptParams = useMemo(() => {
     const attempts =
       cardDetails?.attempts
@@ -29,7 +27,7 @@ export function useFeedbackData(cardDetails: CardDetails | null): UseFeedbackDat
     }))
   }, [cardDetails])
 
-  const attemptQueries = useAttemptDetailsList(accessToken, attemptParams)
+  const attemptQueries = useAttemptDetailsList(attemptParams)
   const isLoading = attemptQueries.some((query) => query.isLoading)
 
   const feedbackData: FeedbackItem[] = (attemptQueries ?? [])

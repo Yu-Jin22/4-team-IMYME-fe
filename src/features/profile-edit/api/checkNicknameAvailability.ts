@@ -1,4 +1,4 @@
-import { httpClient } from '@/shared'
+import { proxyApiClient } from '@/shared/api'
 
 type NicknameCheckResponse = {
   message: string
@@ -12,17 +12,14 @@ type NicknameCheckResult =
   | { ok: true; isAvailable: boolean; reason: string; message: string | null }
   | { ok: false; reason: string }
 
-export async function checkNicknameAvailability(
-  accessToken: string,
-  nickname: string,
-): Promise<NicknameCheckResult> {
+export async function checkNicknameAvailability(nickname: string): Promise<NicknameCheckResult> {
   try {
-    const response = await httpClient.get<NicknameCheckResponse>('/users/nickname/check', {
-      params: { nickname },
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
+    const response = await proxyApiClient.get<NicknameCheckResponse>(
+      '/proxy-api/users/nickname/check',
+      {
+        params: { nickname },
       },
-    })
+    )
 
     return {
       ok: true,

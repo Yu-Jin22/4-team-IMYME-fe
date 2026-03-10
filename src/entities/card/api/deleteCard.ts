@@ -1,12 +1,8 @@
-import { httpClient } from '@/shared'
+import { proxyApiClient } from '@/shared/api'
 
-export async function deleteCard(accessToken: string, cardId: number) {
+export async function deleteCard(cardId: number) {
   try {
-    const response = await httpClient.delete(`/cards/${cardId}`, {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
-    })
+    const response = await proxyApiClient.delete(`/proxy-api/cards/${cardId}`)
 
     return response.status === 204
   } catch (error) {

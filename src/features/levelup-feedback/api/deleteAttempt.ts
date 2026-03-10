@@ -1,18 +1,13 @@
-import { httpClient } from '@/shared'
+import { proxyApiClient } from '@/shared/api'
 
 type DeleteAttemptResult = { ok: true } | { ok: false; reason: string }
 
 export async function deleteAttempt(
-  accessToken: string,
   cardId: number,
   attemptId: number,
 ): Promise<DeleteAttemptResult> {
   try {
-    await httpClient.delete(`/cards/${cardId}/attempts/${attemptId}`, {
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
-    })
+    await proxyApiClient.delete(`/proxy-api/cards/${cardId}/attempts/${attemptId}`)
 
     return { ok: true }
   } catch (error) {
