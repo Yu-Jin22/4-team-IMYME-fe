@@ -33,6 +33,10 @@ export { StatusMessage } from './ui/StatusMessage'
 export { default as defaultAvatar } from './assets/images/default-avatar.svg'
 export { createUuidForRegex } from './lib/createUuidForRegex'
 export {
+  requestFcmPermissionAndToken,
+  subscribeForegroundMessage,
+} from './lib/firebaseMessagingClient'
+export {
   Drawer,
   DrawerContent,
   DrawerDescription,
