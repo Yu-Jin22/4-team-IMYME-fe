@@ -1,2 +1,5 @@
 export { ChallengeRankingCard } from './ui/ChallengeRankingCard'
+export { ChallengeKeywordCard } from './ui/ChallengeKeywordCard'
+export { ChallengeRankingItem } from './ui/ChallengeRankingItem'
+export { ChallengeFeedbackPanel } from './ui/ChallengeFeedbackPanel'
 export { useChallengeRecordController } from './model/useChallengeRecordController'

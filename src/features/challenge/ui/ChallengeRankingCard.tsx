@@ -19,16 +19,19 @@ export function ChallengeRankingCard() {
 
   return (
     <div className={CARD_CLASSNAME}>
-      <p>어제의 랭킹</p>
+      <p className="text-primary text-sm">어제의 랭킹</p>
       <div className={RANKING_NAME_BOX_CLASSNAME}>
-        <p>👑 수진이</p>
+        <p className="font-semibold">👑 수진이</p>
       </div>
       <div
         className={ACTION_ROW_CLASSNAME}
         onClick={handleClickRankingSeeMore}
       >
-        <p className="text-sm font-medium">어제의 랭킹 보기</p>
-        <ArrowRight size={ARROW_ICON_SIZE} />
+        <p className="text-primary text-sm font-medium">어제의 랭킹 보기</p>
+        <ArrowRight
+          size={ARROW_ICON_SIZE}
+          color="#408DFE"
+        />
       </div>
     </div>
   )
