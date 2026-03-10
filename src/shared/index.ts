@@ -46,5 +46,6 @@ export {
 } from './ui/drawer'
 export { Spinner } from './ui/Spinner'
 export { StatusLoader } from './ui/StatusLoader'
-export { Field, FieldLabel, FieldDescription } from './ui/field'
+export { Field, FieldLabel, FieldDescription, FieldContent } from './ui/field'
 export { Input } from './ui/input'
+export { Switch } from './ui/switch'

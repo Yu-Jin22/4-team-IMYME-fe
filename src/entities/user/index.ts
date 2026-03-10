@@ -11,6 +11,8 @@ export {
   useClearProfile,
 } from './model/useUserStore'
 export { getMyProfile } from './api/getMyProfile'
+export { registerMyDevice } from './api/registerMyDevice'
+export { deleteMyDevice } from './api/deleteMyDevice'
 export { useOptimisticActiveCardCount } from './model/useOptimisticActiveCardCount'
 export { useMyProfileQuery } from './model/useMyProfileQuery'
 export { useSyncMyProfile } from './model/useSyncMyProfile'

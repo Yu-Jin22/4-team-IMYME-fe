@@ -11,6 +11,8 @@ import {
   DialogDescription,
 } from '@/shared/ui/dialog'
 
+import { NotificationSettingField } from './NotificationSettingField'
+
 const MODAL_CONTENT_CLASS =
   'sm:max-w-[320px] min-h-[270px] flex flex-col items-center justify-between'
 
@@ -38,6 +40,7 @@ export function MenuModal({ trigger, open, onOpenChange, onClickProfileEdit }: M
         />
         <HelpButton />
         <LogoutButton />
+        <NotificationSettingField />
       </DialogContent>
     </Dialog>
   )

@@ -27,6 +27,8 @@ const FIREBASE_CONFIG = {
 
 // 웹 푸시 토큰 발급 시 필요한 VAPID 공개키
 const FIREBASE_VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
+const EXPECTED_VAPID_KEY_LENGTH = 87
+const VAPID_KEY_PATTERN = /^[A-Za-z0-9_-]+$/
 
 // 최소 필수 설정이 있는지 확인 (없으면 초기화/요청을 중단)
 const hasRequiredFirebaseConfig = () =>
@@ -37,6 +39,37 @@ const hasRequiredFirebaseConfig = () =>
     FIREBASE_CONFIG.appId &&
     FIREBASE_VAPID_KEY,
   )
+
+type VapidKeyValidationResult =
+  | { ok: true; key: string }
+  | { ok: false; reason: string; length: number }
+
+const validateVapidKey = (rawKey: string | undefined): VapidKeyValidationResult => {
+  const normalizedKey = rawKey?.trim().replace(/\s+/g, '') ?? ''
+
+  if (!normalizedKey) {
+    return { ok: false, reason: 'missing_vapid_key', length: 0 }
+  }
+
+  if (!VAPID_KEY_PATTERN.test(normalizedKey)) {
+    return { ok: false, reason: 'invalid_vapid_key_chars', length: normalizedKey.length }
+  }
+
+  if (normalizedKey.length !== EXPECTED_VAPID_KEY_LENGTH) {
+    return { ok: false, reason: 'invalid_vapid_key_length', length: normalizedKey.length }
+  }
+
+  try {
+    const base64Key = normalizedKey.replace(/-/g, '+').replace(/_/g, '/')
+    const requiredPaddingLength = (4 - (base64Key.length % 4)) % 4
+    const paddedBase64Key = `${base64Key}${'='.repeat(requiredPaddingLength)}`
+    window.atob(paddedBase64Key)
+  } catch {
+    return { ok: false, reason: 'invalid_vapid_key_encoding', length: normalizedKey.length }
+  }
+
+  return { ok: true, key: normalizedKey }
+}
 
 // Firebase 앱 중복 초기화를 방지하는 헬퍼
 const getFirebaseApp = () => (getApps().length > 0 ? getApp() : initializeApp(FIREBASE_CONFIG))
@@ -102,10 +135,18 @@ export const requestFcmPermissionAndToken = async () => {
   try {
     // FCM 백그라운드 수신을 위한 서비스워커 등록
     const serviceWorkerRegistration = await navigator.serviceWorker.register(FCM_SW_PATH)
+    const vapidKeyValidationResult = validateVapidKey(FIREBASE_VAPID_KEY)
+    if (!vapidKeyValidationResult.ok) {
+      console.error('[fcm] invalid vapid key', {
+        reason: vapidKeyValidationResult.reason,
+        length: vapidKeyValidationResult.length,
+      })
+      return null
+    }
 
     // 서비스워커/키 정보를 함께 전달해 FCM 토큰 발급
     const token = await getToken(messaging, {
-      vapidKey: FIREBASE_VAPID_KEY,
+      vapidKey: vapidKeyValidationResult.key,
       serviceWorkerRegistration,
     })
 
