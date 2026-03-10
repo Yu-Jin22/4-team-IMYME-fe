@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { useRecordController } from '@/features/record'
@@ -26,6 +26,14 @@ type UseChallengeRecordControllerResult = {
 const MINIMUM_SUBMIT_DURATION_SECONDS = 1
 const TOO_SHORT_RECORDING_ERROR_MESSAGE = '1초 이상 녹음한 뒤 제출해주세요.'
 const MS_PER_SECOND = 1_000
+const CHALLENGE_CLOSE_HOUR = 22
+const CHALLENGE_CLOSE_MINUTE = 10
+
+const getChallengeCloseTimeMs = (now: Date) => {
+  const challengeCloseDate = new Date(now)
+  challengeCloseDate.setHours(CHALLENGE_CLOSE_HOUR, CHALLENGE_CLOSE_MINUTE, 0, 0)
+  return challengeCloseDate.getTime()
+}
 
 export function useChallengeRecordController(): UseChallengeRecordControllerResult {
   const {
@@ -44,6 +52,7 @@ export function useChallengeRecordController(): UseChallengeRecordControllerResu
   const [isStartingWarmup] = useState(false)
   const [warmupError] = useState(false)
   const [canSubmitRecording, setCanSubmitRecording] = useState(false)
+  const isAutoStoppingRef = useRef(false)
 
   useEffect(() => {
     if (!isRecording) {
@@ -60,6 +69,38 @@ export function useChallengeRecordController(): UseChallengeRecordControllerResu
       window.clearTimeout(enableTimerId)
     }
   }, [isRecording])
+
+  // 챌린지 마감 시각(22:10)에 도달하면 녹음을 자동으로 종료한다.
+  useEffect(() => {
+    if (!isRecording) return
+
+    const now = new Date()
+    const challengeCloseTimeMs = getChallengeCloseTimeMs(now)
+    const msUntilChallengeClose = challengeCloseTimeMs - now.getTime()
+
+    const stopRecordingAtChallengeClose = async () => {
+      if (isAutoStoppingRef.current) return
+      isAutoStoppingRef.current = true
+      try {
+        await stopRecordingAndGetBlob()
+      } finally {
+        isAutoStoppingRef.current = false
+      }
+    }
+
+    if (msUntilChallengeClose <= 0) {
+      void stopRecordingAtChallengeClose()
+      return
+    }
+
+    const stopTimerId = window.setTimeout(() => {
+      void stopRecordingAtChallengeClose()
+    }, msUntilChallengeClose)
+
+    return () => {
+      window.clearTimeout(stopTimerId)
+    }
+  }, [isRecording, stopRecordingAndGetBlob])
 
   const handleMicClick = useCallback(async () => {
     if (isRecording) return
