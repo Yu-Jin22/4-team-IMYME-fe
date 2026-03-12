@@ -31,6 +31,8 @@ export function MyCardList({ selectedCategory, selectedKeyword }: MyCardListProp
   // 무한 스크롤 데이터/상태를 한 번에 가져온다.
   const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useInfiniteMyCardList(userId)
+  // 내부 스크롤 컨테이너를 root로 사용하기 위한 ref다.
+  const listContainerRef = useRef<HTMLDivElement | null>(null)
   // 화면 하단 sentinel 요소를 관찰해 다음 페이지를 자동 요청한다.
   const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null)
 
@@ -39,7 +41,7 @@ export function MyCardList({ selectedCategory, selectedKeyword }: MyCardListProp
     if (!triggerElement) return
     if (!hasNextPage) return
 
-    // sentinel이 viewport에 들어오면 fetchNextPage를 실행한다.
+    // sentinel이 리스트 스크롤 영역에 들어오면 fetchNextPage를 실행한다.
     const observer = new IntersectionObserver(
       (entries) => {
         const targetEntry = entries[0]
@@ -49,7 +51,8 @@ export function MyCardList({ selectedCategory, selectedKeyword }: MyCardListProp
         void fetchNextPage()
       },
       {
-        root: null,
+        // 리스트가 자체 스크롤 영역이므로 viewport 대신 컨테이너를 관찰 root로 사용한다.
+        root: listContainerRef.current,
         rootMargin: INFINITE_SCROLL_ROOT_MARGIN,
         threshold: INFINITE_SCROLL_THRESHOLD,
       },
@@ -92,7 +95,10 @@ export function MyCardList({ selectedCategory, selectedKeyword }: MyCardListProp
   }
 
   return (
-    <div className={LIST_CLASSNAME}>
+    <div
+      ref={listContainerRef}
+      className={LIST_CLASSNAME}
+    >
       {filteredCards.map((card) => (
         <Card
           key={card.id}
