@@ -1,7 +1,7 @@
 import dynamic from 'next/dynamic'
 
 import { ModeButton } from '@/features/mode'
-import { RecentListHeader } from '@/shared'
+import { RecentListHeader } from '@/shared/ui/RecentListHeader'
 
 import { ChallengeRankingCard } from '@/features/challenge'
 
