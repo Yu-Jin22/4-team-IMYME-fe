@@ -1,9 +1,8 @@
 import dynamic from 'next/dynamic'
 
+import { ChallengeRankingCard } from '@/features/challenge'
 import { ModeButton } from '@/features/mode'
 import { RecentListHeader } from '@/shared'
-
-import { ChallengeRankingCard } from '@/features/challenge'
 
 const RecentCardListLazy = dynamic(
   () => import('@/widgets/recent-card').then((module) => module.RecentCardList),
