@@ -19,7 +19,7 @@ export async function deleteMyDevice(deviceUuid: string): Promise<DeleteMyDevice
   }
 
   try {
-    const response = await proxyApiClient.delete(`/proxy-api/users/me/device/${deviceUuid}`)
+    const response = await proxyApiClient.delete(`/proxy-api/users/me/devices/${deviceUuid}`)
 
     if (response.status === HTTP_STATUS_NO_CONTENT) {
       return { ok: true }
