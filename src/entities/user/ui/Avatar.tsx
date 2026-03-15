@@ -111,7 +111,8 @@ export function Avatar({ avatar_src, size, alt = 'profile image' }: AvatarProps)
         onError={() => {
           void handleAvatarError()
         }}
-        priority={isFallback}
+        priority={true}
+        fetchPriority="high"
         onLoad={() => {
           setLoadedSrc(src)
         }}
