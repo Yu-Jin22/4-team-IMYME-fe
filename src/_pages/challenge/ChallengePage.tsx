@@ -45,7 +45,9 @@ const getChallengeStatusMessage = (params: {
 export function ChallengePage() {
   const router = useRouter()
   const hasHandledQueryErrorRef = useRef(false)
+  const hasReplacedAfterSubmissionRef = useRef(false)
   const todayChallengeQuery = useTodayChallenge()
+  const challengeId = todayChallengeQuery.data?.id ?? null
   const {
     handleMicClick,
     handleRecordingComplete,
@@ -54,8 +56,9 @@ export function ChallengePage() {
     isPaused,
     recordedBlob,
     isSubmittingFeedback,
+    isSubmissionCompleted,
     canSubmitRecording,
-  } = useChallengeRecordController()
+  } = useChallengeRecordController({ challengeId })
   const shouldRedirectToMain =
     todayChallengeQuery.isError || (!todayChallengeQuery.isLoading && !todayChallengeQuery.data)
   const shouldRenderSkeleton = todayChallengeQuery.isLoading || shouldRedirectToMain
@@ -75,6 +78,14 @@ export function ChallengePage() {
     }
     router.replace(MAIN_PAGE_PATH)
   }, [router, shouldRedirectToMain, todayChallengeQuery.isError])
+
+  useEffect(() => {
+    if (!isSubmissionCompleted) return
+    if (hasReplacedAfterSubmissionRef.current) return
+
+    hasReplacedAfterSubmissionRef.current = true
+    router.replace(MAIN_PAGE_PATH)
+  }, [isSubmissionCompleted, router])
 
   const handleBack = () => {
     router.back()
@@ -124,9 +135,8 @@ export function ChallengePage() {
               </Button>
               <div className="border-primary mt-6 flex min-h-12.5 min-w-87.5 items-center justify-center rounded-xl border text-center">
                 <p>
-                  현재 챌린지에
-                  {todayChallenge?.participantCount ?? ''}
-                  명이 도전 중입니다!
+                  {`현재 챌린지에 
+                  ${todayChallenge?.participantCount ?? ''}명이 도전 중입니다!`}
                 </p>
               </div>
             </div>

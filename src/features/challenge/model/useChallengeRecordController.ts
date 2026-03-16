@@ -4,11 +4,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { useRecordController } from '@/features/record'
+import { resolveAudioContentType } from '@/shared/lib/audioContentType'
+
+import { completeChallengeAttemptUpload } from '../api/completeChallengeAttemptUpload'
+import { createChallengeAttempt } from '../api/createChallengeAttempt'
+import { uploadChallengeAttemptAudio } from '../api/uploadChallengeAttemptAudio'
 
 import type { FeedbackStatus } from '@/features/levelup-feedback'
 
 type UseChallengeRecordControllerResult = {
   isSubmittingFeedback: boolean
+  isSubmissionCompleted: boolean
   uploadStatus: FeedbackStatus | null
   isStartingWarmup: boolean
   warmupError: boolean
@@ -23,11 +29,22 @@ type UseChallengeRecordControllerResult = {
   handleRecordingComplete: () => Promise<void>
 }
 
+type UseChallengeRecordControllerParams = {
+  challengeId: number | null
+}
+
 const MINIMUM_SUBMIT_DURATION_SECONDS = 1
 const TOO_SHORT_RECORDING_ERROR_MESSAGE = '1초 이상 녹음한 뒤 제출해주세요.'
 const MS_PER_SECOND = 1_000
 const CHALLENGE_CLOSE_HOUR = 22
 const CHALLENGE_CLOSE_MINUTE = 10
+const AUTO_SUBMIT_DELAY_MS = 0
+const CREATE_CHALLENGE_ATTEMPT_ERROR_MESSAGE =
+  '챌린지 제출 생성에 실패했습니다. 잠시 후 다시 시도해주세요.'
+const UPLOAD_CHALLENGE_ATTEMPT_AUDIO_ERROR_MESSAGE =
+  '챌린지 음성 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.'
+const COMPLETE_CHALLENGE_ATTEMPT_UPLOAD_ERROR_MESSAGE =
+  '챌린지 업로드 완료 처리에 실패했습니다. 잠시 후 다시 시도해주세요.'
 
 const getChallengeCloseTimeMs = (now: Date) => {
   const challengeCloseDate = new Date(now)
@@ -35,19 +52,25 @@ const getChallengeCloseTimeMs = (now: Date) => {
   return challengeCloseDate.getTime()
 }
 
-export function useChallengeRecordController(): UseChallengeRecordControllerResult {
+export function useChallengeRecordController({
+  challengeId,
+}: UseChallengeRecordControllerParams): UseChallengeRecordControllerResult {
   const {
     isMicAlertOpen,
     isRecording,
     isPaused,
     getElapsedSeconds,
+    getDurationSeconds,
     recordedBlob,
+    autoStopped,
     handleMicClick: handleBaseMicClick,
     handleMicAlertOpenChange,
     stopRecordingAndGetBlob,
+    resetAutoStopped,
   } = useRecordController({ canPause: false })
 
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
+  const [isSubmissionCompleted, setIsSubmissionCompleted] = useState(false)
   const [uploadStatus] = useState<FeedbackStatus | null>(null)
   const [isStartingWarmup] = useState(false)
   const [warmupError] = useState(false)
@@ -108,23 +131,77 @@ export function useChallengeRecordController(): UseChallengeRecordControllerResu
   }, [handleBaseMicClick, isRecording])
 
   const handleRecordingComplete = useCallback(async () => {
-    if (!isRecording || isSubmittingFeedback) return
-    const durationSeconds = getElapsedSeconds()
+    if (isSubmittingFeedback) return
+    if (!challengeId) return
+    const durationSeconds = getDurationSeconds()
     if (durationSeconds < MINIMUM_SUBMIT_DURATION_SECONDS) {
       toast.error(TOO_SHORT_RECORDING_ERROR_MESSAGE)
       return
     }
 
     setIsSubmittingFeedback(true)
+    setIsSubmissionCompleted(false)
     try {
-      await stopRecordingAndGetBlob()
+      const completedBlob = await stopRecordingAndGetBlob()
+      if (!completedBlob) return
+
+      const normalizedMimeType = completedBlob.type.split(';')[0]
+      const contentType = resolveAudioContentType(normalizedMimeType)
+      const challengeAttemptResult = await createChallengeAttempt(challengeId, contentType)
+
+      if (!challengeAttemptResult.ok) {
+        toast.error(CREATE_CHALLENGE_ATTEMPT_ERROR_MESSAGE)
+        return
+      }
+
+      const uploadChallengeAttemptAudioResult = await uploadChallengeAttemptAudio(
+        challengeAttemptResult.data.uploadUrl,
+        completedBlob,
+        contentType,
+      )
+
+      if (!uploadChallengeAttemptAudioResult.ok) {
+        toast.error(UPLOAD_CHALLENGE_ATTEMPT_AUDIO_ERROR_MESSAGE)
+        return
+      }
+
+      const completeChallengeAttemptUploadResult = await completeChallengeAttemptUpload(
+        challengeId,
+        challengeAttemptResult.data.attemptId,
+        {
+          objectKey: challengeAttemptResult.data.objectKey,
+          durationSeconds,
+        },
+      )
+
+      if (!completeChallengeAttemptUploadResult.ok) {
+        toast.error(COMPLETE_CHALLENGE_ATTEMPT_UPLOAD_ERROR_MESSAGE)
+        return
+      }
+
+      setIsSubmissionCompleted(true)
     } finally {
       setIsSubmittingFeedback(false)
     }
-  }, [getElapsedSeconds, isRecording, isSubmittingFeedback, stopRecordingAndGetBlob])
+  }, [challengeId, getDurationSeconds, isSubmittingFeedback, stopRecordingAndGetBlob])
+
+  useEffect(() => {
+    if (!autoStopped || !recordedBlob || isSubmittingFeedback) return
+
+    resetAutoStopped()
+
+    const timeoutId = window.setTimeout(() => {
+      void handleRecordingComplete()
+    }, AUTO_SUBMIT_DELAY_MS)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [autoStopped, handleRecordingComplete, isSubmittingFeedback, recordedBlob, resetAutoStopped])
 
   return {
     isSubmittingFeedback,
+    isSubmissionCompleted,
     uploadStatus,
     isStartingWarmup,
     warmupError,
