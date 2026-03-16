@@ -34,7 +34,7 @@ type GetTodayChallengeResult =
   | { ok: true; data: TodayChallengeData }
   | { ok: false; reason: string }
 
-const TODAY_CHALLENGE_PROXY_PATH = '/proxy-api/challenge/today'
+const TODAY_CHALLENGE_PROXY_PATH = '/proxy-api/challenges/today'
 const EMPTY_DATA_REASON = 'empty_data'
 const REQUEST_FAILED_REASON = 'request_failed'
 

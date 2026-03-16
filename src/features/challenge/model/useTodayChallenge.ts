@@ -33,12 +33,19 @@ const getTodayChallengeOrThrow = async (): Promise<TodayChallengeData> => {
   return result.data
 }
 
-export function useTodayChallenge(): UseQueryResult<TodayChallengeData, Error> {
+type UseTodayChallengeOptions = {
+  enabled?: boolean
+}
+
+export function useTodayChallenge(
+  options?: UseTodayChallengeOptions,
+): UseQueryResult<TodayChallengeData, Error> {
   const challengeDateKey = getChallengeDateKey()
 
   return useQuery<TodayChallengeData, Error>({
     queryKey: buildTodayChallengeQueryKey(challengeDateKey),
     queryFn: getTodayChallengeOrThrow,
+    enabled: options?.enabled,
     retry: false,
     staleTime: CHALLENGE_TODAY_STALE_TIME_MS,
     gcTime: CHALLENGE_TODAY_GC_TIME_MS,

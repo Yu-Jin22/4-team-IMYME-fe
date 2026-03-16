@@ -1,5 +1,6 @@
 import dynamic from 'next/dynamic'
 
+import { ChallengeModeButton } from '@/features/challenge/ui/ChallengeModeButton'
 import { ChallengeRankingCard } from '@/features/challenge/ui/ChallengeRankingCard'
 import { ModeButton } from '@/features/mode'
 import { RecentListHeader } from '@/shared/ui/RecentListHeader'
@@ -18,11 +19,7 @@ const RecentPvPListLazy = dynamic(
   },
 )
 
-type MainPageProps = {
-  isChallengeOpen: boolean
-}
-
-export function MainPage({ isChallengeOpen }: MainPageProps) {
+export function MainPage() {
   const shouldRenderChallengeMode = process.env.NEXT_PUBLIC_CHALLENGE_OPEN === 'true'
 
   return (
@@ -31,12 +28,7 @@ export function MainPage({ isChallengeOpen }: MainPageProps) {
         {/* 학습/대결 모드 버튼 */}
         <ModeButton variant="levelup" />
         <ModeButton variant="pvp" />
-        {shouldRenderChallengeMode ? (
-          <ModeButton
-            variant="challenge"
-            disabled={!isChallengeOpen}
-          />
-        ) : null}
+        {shouldRenderChallengeMode ? <ChallengeModeButton /> : null}
       </div>
       {/*챌린지 랭킹*/}
       {shouldRenderChallengeMode ? <ChallengeRankingCard /> : null}

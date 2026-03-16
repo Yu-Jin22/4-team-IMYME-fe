@@ -1,4 +1,5 @@
 export { ChallengeRankingCard } from './ui/ChallengeRankingCard'
+export { ChallengeModeButton } from './ui/ChallengeModeButton'
 export { ChallengeKeywordCard } from './ui/ChallengeKeywordCard'
 export { ChallengeRankingItem } from './ui/ChallengeRankingItem'
 export { ChallengeFeedbackPanel } from './ui/ChallengeFeedbackPanel'
