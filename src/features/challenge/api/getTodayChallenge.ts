@@ -6,9 +6,11 @@ export type TodayChallengeKeyword = {
 }
 
 export type TodayChallengeMyParticipation = {
-  score: number
-  rank: number
-  percentile: number
+  attemptId?: number
+  status?: string
+  score?: number
+  rank?: number
+  percentile?: number
 }
 
 export type TodayChallengeData = {
