@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import Image, { type StaticImageData } from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 
-import { DefaultAvatar } from '@/shared'
+import DefaultAvatar from '@/shared/assets/images/default-avatar.svg'
 
 import { useProfile, useSetProfile } from '../model/useUserStore'
 

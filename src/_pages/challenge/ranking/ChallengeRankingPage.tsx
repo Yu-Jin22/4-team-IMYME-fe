@@ -2,10 +2,10 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
+import { ChallengeFeedbackPanel } from '@/features/challenge/ui/ChallengeFeedbackPanel'
+import { ChallengeKeywordCard } from '@/features/challenge/ui/ChallengeKeywordCard'
 import { Button, ModeHeader } from '@/shared'
 import { ChallengeTopRankings } from '@/widgets/challenge-ranking'
-
-import { ChallengeFeedbackPanel, ChallengeKeywordCard } from '@/features/challenge'
 
 type ChallengeFeedbackJson = {
   summary: string

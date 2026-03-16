@@ -4,15 +4,10 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { deleteMyDevice, registerMyDevice } from '@/entities/user'
-import {
-  Field,
-  FieldLabel,
-  FieldContent,
-  FieldDescription,
-  Switch,
-  createUuidForRegex,
-  requestFcmPermissionAndToken,
-} from '@/shared'
+import { createUuidForRegex } from '@/shared/lib/createUuidForRegex'
+import { requestFcmPermissionAndToken } from '@/shared/lib/firebaseMessagingClient'
+import { Field, FieldLabel, FieldContent, FieldDescription } from '@/shared/ui/field'
+import { Switch } from '@/shared/ui/switch'
 
 const NOTIFICATION_SWITCH_ID = 'switch-focus-mode'
 const NOTIFICATION_ON_MESSAGE = '알림이 켜졌습니다.'

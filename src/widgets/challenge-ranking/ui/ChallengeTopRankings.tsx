@@ -1,4 +1,4 @@
-import { ChallengeRankingItem } from '@/features/challenge'
+import { ChallengeRankingItem } from '@/features/challenge/ui/ChallengeRankingItem'
 
 const CHALLENGE_TOP_RANKERS = [
   { variant: '1st', nickname: '말하는 감자', profileImageUrl: null },

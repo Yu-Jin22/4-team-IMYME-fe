@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 
-import { subscribeForegroundMessage } from '@/shared'
+import { subscribeForegroundMessage } from '@/shared/lib/firebaseMessagingClient'
 
 // 환경변수로 FCM 기능 전체 on/off 제어
 const ENABLE_FCM = process.env.NEXT_PUBLIC_ENABLE_FCM === 'true'
