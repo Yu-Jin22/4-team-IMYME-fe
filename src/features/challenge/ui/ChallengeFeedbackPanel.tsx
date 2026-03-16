@@ -1,6 +1,6 @@
 'use client'
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs'
 
 const EMPTY_FEEDBACK_MESSAGE = '피드백이 존재하지 않습니다.'
 const WRAPPER_CLASSNAME = 'w-full max-w-(--frame-max-width) self-center px-7 py-5'

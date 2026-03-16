@@ -2,7 +2,6 @@
 
 import { type ReactNode } from 'react'
 
-import { ProfileEditButton, LogoutButton, HelpButton } from '@/features/header-menu'
 import {
   Dialog,
   DialogContent,
@@ -10,6 +9,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/shared/ui/dialog'
+
+import { HelpButton } from '../HelpButton'
+import { LogoutButton } from '../LogoutButton'
+import { ProfileEditButton } from '../ProfileEditButton'
 
 import { NotificationSettingField } from './NotificationSettingField'
 

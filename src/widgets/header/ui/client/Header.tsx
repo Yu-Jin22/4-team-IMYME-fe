@@ -7,7 +7,8 @@ import { useEffect } from 'react'
 
 import { useMenuModal, useProfileEditModal } from '@/widgets/header'
 
-const loadMenuModal = () => import('@/features/header-menu').then((m) => m.MenuModal)
+const loadMenuModal = () =>
+  import('@/features/header-menu/ui/client/MenuModal').then((module) => module.MenuModal)
 
 const MenuModalLazy = dynamic(loadMenuModal, {
   ssr: false,
@@ -16,7 +17,8 @@ const MenuModalLazy = dynamic(loadMenuModal, {
 
 // ✅ Lazy loaded
 // ✅ import 함수를 분리해서 preload에 재사용
-const loadProfileEditModal = () => import('@/features/profile-edit').then((m) => m.ProfileEditModal)
+const loadProfileEditModal = () =>
+  import('@/features/profile-edit/ui/ProfileEditModal').then((module) => module.ProfileEditModal)
 
 const ProfileEditModalLazy = dynamic(loadProfileEditModal, {
   // 모달은 클릭 후 뜨는 UI라 SSR 필요 없음(클라 전용 컴포넌트이면 특히)

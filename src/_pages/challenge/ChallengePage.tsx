@@ -3,14 +3,11 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 
+import { useChallengeRecordController } from '@/features/challenge/model/useChallengeRecordController'
+import { useTodayChallenge } from '@/features/challenge/model/useTodayChallenge'
+import { ChallengeKeywordCard } from '@/features/challenge/ui/ChallengeKeywordCard'
 import { MicrophoneBox } from '@/features/record'
 import { Button, ModeHeader, RecordTipBox } from '@/shared'
-
-import {
-  ChallengeKeywordCard,
-  useChallengeRecordController,
-  useTodayChallenge,
-} from '@/features/challenge'
 
 const MAIN_PAGE_PATH = '/main'
 
