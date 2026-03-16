@@ -1,6 +1,7 @@
 'use client'
 
-import { BackButton, ProgressField } from '@/shared'
+import { BackButton } from '@/shared/ui/BackButton'
+import { ProgressField } from '@/shared/ui/ProgressField'
 
 type LevelUpStep = 'category' | 'keyword' | 'recording' | 'feedback'
 type PvPStep =
