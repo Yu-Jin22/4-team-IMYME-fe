@@ -16,6 +16,10 @@ type UseMyProfileQueryResult = {
   isError: boolean
 }
 
+const PROFILE_QUERY_STALE_TIME_MINUTES = 10
+const ONE_MINUTE_IN_MILLISECONDS = 60_000
+const PROFILE_QUERY_STALE_TIME_MS = PROFILE_QUERY_STALE_TIME_MINUTES * ONE_MINUTE_IN_MILLISECONDS
+
 export function useMyProfileQuery(options?: UseMyProfileQueryOptions): UseMyProfileQueryResult {
   // 외부에서 쿼리 활성/비활성 제어
   const enabled = options?.enabled ?? true
@@ -30,8 +34,8 @@ export function useMyProfileQuery(options?: UseMyProfileQueryOptions): UseMyProf
       }
       return result.data
     },
-    // 1분 동안은 fresh로 간주해 불필요한 재요청 방지
-    staleTime: 60_000,
+    // 10분 동안은 fresh로 간주해 불필요한 재요청 방지
+    staleTime: PROFILE_QUERY_STALE_TIME_MS,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,
