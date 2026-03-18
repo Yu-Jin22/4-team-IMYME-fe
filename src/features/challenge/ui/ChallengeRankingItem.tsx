@@ -1,3 +1,5 @@
+import Image from 'next/image'
+
 type ChallengeRankingVariant = '1st' | '2nd' | '3rd'
 
 type ChallengeRankingItemProps = {
@@ -24,7 +26,7 @@ export function ChallengeRankingItem({
       <p className={RANK_LABEL_CLASSNAME}>{variant}</p>
       <div className={PROFILE_SECTION_CLASSNAME}>
         {profileImageUrl ? (
-          <img
+          <Image
             src={profileImageUrl}
             alt={`${nickname} profile`}
             className={PROFILE_IMAGE_CLASSNAME}
