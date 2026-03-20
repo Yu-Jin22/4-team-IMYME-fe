@@ -7,24 +7,16 @@ import { ChallengeKeywordCard } from '@/features/challenge/ui/ChallengeKeywordCa
 import { Button, ModeHeader } from '@/shared'
 import { ChallengeTopRankings } from '@/widgets/challenge-ranking'
 
-type ChallengeFeedbackJson = {
-  summary: string
-  keywords: string
-  facts: string
-  understanding: string
-  comparisonFeedback: string
-}
+import type { MyChallengeResultData } from '@/features/challenge/api/getMyChallengeResult'
 
-const CHALLENGE_FEEDBACK_MOCK_JSON: ChallengeFeedbackJson = {
-  summary:
-    '핵심 개념 정의가 정확하고 예시를 짧게 붙여 이해를 도왔습니다. 결론 문장이 명확해 전달력이 좋았습니다.',
-  keywords: 'JWT, Access Token, Refresh Token, 만료 시간, 서명',
-  facts:
-    'JWT는 header.payload.signature 구조이며, 서버는 서명 검증으로 무결성을 확인합니다. 토큰 만료는 exp 클레임으로 관리됩니다.',
-  understanding:
-    '개념 이해도는 높습니다. 다만 토큰 탈취 대응(저장 위치/재발급 전략)까지 함께 언급하면 실무 완성도가 더 올라갑니다.',
-  comparisonFeedback:
-    '상위 랭커는 동일 주제를 설명할 때 공격 시나리오와 방어 전략을 짝으로 말해 설득력이 높았습니다.',
+import { useLatestChallengeRanking, useMyChallengeResult } from '@/features/challenge'
+
+type ChallengeFeedback = {
+  summary?: string
+  keywords?: string
+  facts?: string
+  understanding?: string
+  comparisonFeedback?: string
 }
 
 const MOSAIC_BACKGROUND_STYLE = {
@@ -33,35 +25,134 @@ const MOSAIC_BACKGROUND_STYLE = {
   backgroundSize: '20px 20px',
 } as const
 
+const EMPTY_KEYWORD = '-'
+const EMPTY_RANK_TEXT = '-'
+const RANKING_LOADING_MESSAGE = '랭킹 정보를 불러오는 중입니다.'
+const FEEDBACK_LOADING_MESSAGE = '피드백을 불러오는 중입니다.'
+const FEEDBACK_WAITING_RESULT_MESSAGE = 'AI 분석 중입니다. 잠시만 기다려주세요.'
+const FEEDBACK_NO_RESULT_MESSAGE = '아직 결과 데이터가 준비되지 않았습니다.'
+const CHALLENGE_COMPLETED_STATUS = 'COMPLETED'
+const FEEDBACK_PENDING_MESSAGE = '챌린지 결과 집계 중입니다. 잠시 후 다시 확인해주세요.'
+
+const getChallengeFeedbackFromResult = (
+  challengeResult: MyChallengeResultData | undefined,
+): ChallengeFeedback | undefined => {
+  if (!challengeResult) return undefined
+
+  const myResult = challengeResult.myResult
+  const summary = challengeResult.message || FEEDBACK_WAITING_RESULT_MESSAGE
+
+  if (!myResult) {
+    return {
+      summary,
+      keywords: challengeResult.keywordName,
+      facts: FEEDBACK_NO_RESULT_MESSAGE,
+      understanding: challengeResult.status,
+      comparisonFeedback: FEEDBACK_NO_RESULT_MESSAGE,
+    }
+  }
+
+  return {
+    summary,
+    keywords: challengeResult.keywordName,
+    facts: `점수 ${myResult.score}점 · 레벨 ${myResult.level}`,
+    understanding: myResult.isWinner ? '오늘 챌린지 승리입니다.' : '오늘 챌린지는 패배입니다.',
+    comparisonFeedback: `랭킹 결과 상태: ${challengeResult.status}`,
+  }
+}
+
 export function ChallengeRankingPage() {
   const [showFeedback, setShowFeedback] = useState(false)
-  // TODO: 추후 API 응답 값으로 교체
-  const [hasParticipatedInChallenge] = useState(true)
+  const latestChallengeRankingQuery = useLatestChallengeRanking()
+  const rankingData = latestChallengeRankingQuery.data
+  const isRankingLoading = latestChallengeRankingQuery.isLoading
+  const challengeId = rankingData?.challenge.id
+  const challengeStatus = rankingData?.challenge.status
+  const isChallengeCompleted = challengeStatus === CHALLENGE_COMPLETED_STATUS
+  const myChallengeResultQuery = useMyChallengeResult(challengeId ?? 0, {
+    enabled: false,
+  })
+  const challengeFeedback = getChallengeFeedbackFromResult(myChallengeResultQuery.data)
+  const hasRankingData = Boolean(rankingData)
+  const hasParticipatedInChallenge = rankingData?.myRank != null
+  const myRankValue = rankingData?.myRank?.rank
+  const hasMyRank = typeof myRankValue === 'number'
+  const myRankText = hasMyRank ? `${myRankValue}위` : EMPTY_RANK_TEXT
+  const keywordName = rankingData?.challenge.keywordName ?? EMPTY_KEYWORD
   const router = useRouter()
+
   const handleBack = () => {
     router.back()
   }
+
   const handleClickShowFeedback = () => {
+    if (!isChallengeCompleted) {
+      return
+    }
+
     setShowFeedback(true)
+
+    if (!challengeId) {
+      return
+    }
+
+    void myChallengeResultQuery.refetch()
   }
 
   const renderFeedbackSection = () => {
-    if (showFeedback && hasParticipatedInChallenge) {
-      return <ChallengeFeedbackPanel feedback={CHALLENGE_FEEDBACK_MOCK_JSON} />
-    }
-
-    if (hasParticipatedInChallenge) {
+    if (!hasRankingData) {
       return (
         <div
           className="bg-secondary flex h-90 w-90 items-center justify-center rounded-xl"
           style={MOSAIC_BACKGROUND_STYLE}
         >
+          <p className="text-sm font-semibold">{RANKING_LOADING_MESSAGE}</p>
+        </div>
+      )
+    }
+
+    if (showFeedback && hasParticipatedInChallenge) {
+      if (!isChallengeCompleted) {
+        return (
+          <div
+            className="bg-secondary flex h-90 w-90 items-center justify-center rounded-xl"
+            style={MOSAIC_BACKGROUND_STYLE}
+          >
+            <p className="text-sm font-semibold">{FEEDBACK_PENDING_MESSAGE}</p>
+          </div>
+        )
+      }
+
+      if (myChallengeResultQuery.isFetching) {
+        return (
+          <div
+            className="bg-secondary flex h-90 w-90 items-center justify-center rounded-xl"
+            style={MOSAIC_BACKGROUND_STYLE}
+          >
+            <p className="text-sm font-semibold">{FEEDBACK_LOADING_MESSAGE}</p>
+          </div>
+        )
+      }
+
+      return <ChallengeFeedbackPanel feedback={challengeFeedback} />
+    }
+
+    if (hasParticipatedInChallenge) {
+      return (
+        <div
+          className="bg-secondary flex h-90 w-90 flex-col items-center justify-center rounded-xl"
+          style={MOSAIC_BACKGROUND_STYLE}
+        >
           <Button
             variant="ranking_show_feedback_btn"
             onClick={handleClickShowFeedback}
+            disabled={!isChallengeCompleted}
           >
             피드백 보기
           </Button>
+          {!isChallengeCompleted ? (
+            <p className="mt-3 text-center text-sm font-semibold">{FEEDBACK_PENDING_MESSAGE}</p>
+          ) : null}
         </div>
       )
     }
@@ -86,13 +177,16 @@ export function ChallengeRankingPage() {
       <div className="flex flex-col items-center gap-6 py-4">
         <div className="border-primary flex h-22.5 w-80 flex-col items-center justify-center gap-4 rounded-xl border shadow-[0_-2px_1px_rgba(255,255,255,1),0_2px_1px_rgba(0,0,0,0.1)]">
           <p className="text-sm">나의 랭킹</p>
-          <p className="text-lg font-semibold">54위</p>
+          <p className="text-lg font-semibold">{myRankText}</p>
         </div>
         <ChallengeKeywordCard
           variant="yesterday"
-          keyword="JWT"
+          keyword={keywordName}
         />
-        <ChallengeTopRankings />
+        <ChallengeTopRankings
+          rankings={rankingData?.rankings}
+          isLoading={isRankingLoading}
+        />
         {renderFeedbackSection()}
       </div>
     </div>
