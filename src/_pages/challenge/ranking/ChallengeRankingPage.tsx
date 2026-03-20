@@ -2,14 +2,13 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
+import { useLatestChallengeRanking, useMyChallengeResult } from '@/features/challenge'
 import { ChallengeFeedbackPanel } from '@/features/challenge/ui/ChallengeFeedbackPanel'
 import { ChallengeKeywordCard } from '@/features/challenge/ui/ChallengeKeywordCard'
 import { Button, ModeHeader } from '@/shared'
 import { ChallengeTopRankings } from '@/widgets/challenge-ranking'
 
 import type { MyChallengeResultData } from '@/features/challenge/api/getMyChallengeResult'
-
-import { useLatestChallengeRanking, useMyChallengeResult } from '@/features/challenge'
 
 type ChallengeFeedback = {
   summary?: string
