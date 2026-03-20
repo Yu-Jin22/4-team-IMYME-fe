@@ -10,7 +10,7 @@ type ChallengeRankingItemProps = {
 
 const ITEM_WRAPPER_CLASSNAME =
   'border-secondary flex h-12.5 w-80 items-center justify-center self-center rounded-xl border shadow-[0_-2px_1px_rgba(255,255,255,1),0_2px_1px_rgba(0,0,0,0.1)]'
-const RANK_LABEL_CLASSNAME = 'text-primary mr-auto ml-3 font-semibold'
+const RANK_LABEL_CLASSNAME = 'text-primary ml-3 w-10 shrink-0 text-right font-semibold'
 const PROFILE_SECTION_CLASSNAME = 'ml-4 flex flex-1 items-center gap-2'
 const PROFILE_IMAGE_CLASSNAME = 'h-8 w-8 rounded-full object-cover bg-gray-200'
 const PROFILE_PLACEHOLDER_CLASSNAME = 'h-8 w-8 rounded-full bg-gray-200'
