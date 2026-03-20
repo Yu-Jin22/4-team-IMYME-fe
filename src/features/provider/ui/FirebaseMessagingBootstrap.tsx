@@ -4,7 +4,10 @@ import { type MessagePayload } from 'firebase/messaging'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 
-import { subscribeForegroundMessage } from '@/shared/lib/firebaseMessagingClient'
+import {
+  registerFirebaseMessagingServiceWorker,
+  subscribeForegroundMessage,
+} from '@/shared/lib/firebaseMessagingClient'
 
 // 환경변수로 FCM 기능 전체 on/off 제어
 const ENABLE_FCM = process.env.NEXT_PUBLIC_ENABLE_FCM === 'true'
@@ -36,6 +39,11 @@ const navigateToNotificationPath = (path: string) => {
 }
 
 export function FirebaseMessagingBootstrap() {
+  useEffect(() => {
+    // 알림 권한과 무관하게 SW를 먼저 등록해 오프라인 캐싱을 활성화합니다.
+    void registerFirebaseMessagingServiceWorker()
+  }, [])
+
   useEffect(() => {
     // FCM 비활성 환경에서는 초기화하지 않음
     if (!ENABLE_FCM) return
