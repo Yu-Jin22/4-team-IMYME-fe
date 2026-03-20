@@ -74,6 +74,25 @@ const validateVapidKey = (rawKey: string | undefined): VapidKeyValidationResult 
 // Firebase 앱 중복 초기화를 방지하는 헬퍼
 const getFirebaseApp = () => (getApps().length > 0 ? getApp() : initializeApp(FIREBASE_CONFIG))
 
+// 오프라인 캐싱/백그라운드 알림용 SW를 등록하는 헬퍼
+export const registerFirebaseMessagingServiceWorker = async () => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[sw] Service Worker API is not available')
+    return null
+  }
+
+  try {
+    return await navigator.serviceWorker.register(FCM_SW_PATH)
+  } catch (error) {
+    console.error('[sw] failed to register service worker', error)
+    return null
+  }
+}
+
 // 현재 브라우저/환경에서 안전하게 Messaging 인스턴스를 가져오는 헬퍼
 const getMessagingSafe = async (): Promise<Messaging | null> => {
   // SSR 환경에서는 브라우저 API가 없으므로 중단
@@ -134,7 +153,12 @@ export const requestFcmPermissionAndToken = async () => {
 
   try {
     // FCM 백그라운드 수신을 위한 서비스워커 등록
-    const serviceWorkerRegistration = await navigator.serviceWorker.register(FCM_SW_PATH)
+    const serviceWorkerRegistration = await registerFirebaseMessagingServiceWorker()
+    if (!serviceWorkerRegistration) {
+      console.warn('[fcm] service worker registration is unavailable')
+      return null
+    }
+
     const vapidKeyValidationResult = validateVapidKey(FIREBASE_VAPID_KEY)
     if (!vapidKeyValidationResult.ok) {
       console.error('[fcm] invalid vapid key', {
