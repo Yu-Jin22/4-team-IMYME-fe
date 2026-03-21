@@ -10,7 +10,7 @@ import {
 } from '@/shared/lib/firebaseMessagingClient'
 
 // 환경변수로 FCM 기능 전체 on/off 제어
-const ENABLE_FCM = process.env.NEXT_PUBLIC_ENABLE_FCM === 'true'
+const ENABLE_FCM = true
 const DEFAULT_NOTIFICATION_TITLE = 'MINE'
 const DEFAULT_NOTIFICATION_PATH = '/main'
 const OPEN_NOTIFICATION_ACTION_LABEL = '열기'
