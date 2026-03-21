@@ -14,6 +14,13 @@ import {
 
 // FCM 전용 Service Worker 경로(public/* 하위)
 const FCM_SW_PATH = '/firebase-messaging-sw.js'
+const FIREBASE_API_KEY_QUERY_PARAM = 'firebaseApiKey'
+const FIREBASE_AUTH_DOMAIN_QUERY_PARAM = 'firebaseAuthDomain'
+const FIREBASE_PROJECT_ID_QUERY_PARAM = 'firebaseProjectId'
+const FIREBASE_STORAGE_BUCKET_QUERY_PARAM = 'firebaseStorageBucket'
+const FIREBASE_MESSAGING_SENDER_ID_QUERY_PARAM = 'firebaseMessagingSenderId'
+const FIREBASE_APP_ID_QUERY_PARAM = 'firebaseAppId'
+const FIREBASE_MEASUREMENT_ID_QUERY_PARAM = 'firebaseMeasurementId'
 
 // 클라이언트 공개 환경변수로 구성하는 Firebase 앱 설정
 const FIREBASE_CONFIG = {
@@ -73,6 +80,68 @@ const validateVapidKey = (rawKey: string | undefined): VapidKeyValidationResult 
 
 // Firebase 앱 중복 초기화를 방지하는 헬퍼
 const getFirebaseApp = () => (getApps().length > 0 ? getApp() : initializeApp(FIREBASE_CONFIG))
+
+const setOptionalSearchParameter = (url: URL, key: string, value: string | undefined) => {
+  if (!value) {
+    return
+  }
+
+  url.searchParams.set(key, value)
+}
+
+const buildFirebaseMessagingServiceWorkerUrl = () => {
+  const serviceWorkerUrl = new URL(FCM_SW_PATH, window.location.origin)
+
+  setOptionalSearchParameter(serviceWorkerUrl, FIREBASE_API_KEY_QUERY_PARAM, FIREBASE_CONFIG.apiKey)
+  setOptionalSearchParameter(
+    serviceWorkerUrl,
+    FIREBASE_AUTH_DOMAIN_QUERY_PARAM,
+    FIREBASE_CONFIG.authDomain,
+  )
+  setOptionalSearchParameter(
+    serviceWorkerUrl,
+    FIREBASE_PROJECT_ID_QUERY_PARAM,
+    FIREBASE_CONFIG.projectId,
+  )
+  setOptionalSearchParameter(
+    serviceWorkerUrl,
+    FIREBASE_STORAGE_BUCKET_QUERY_PARAM,
+    FIREBASE_CONFIG.storageBucket,
+  )
+  setOptionalSearchParameter(
+    serviceWorkerUrl,
+    FIREBASE_MESSAGING_SENDER_ID_QUERY_PARAM,
+    FIREBASE_CONFIG.messagingSenderId,
+  )
+  setOptionalSearchParameter(serviceWorkerUrl, FIREBASE_APP_ID_QUERY_PARAM, FIREBASE_CONFIG.appId)
+  setOptionalSearchParameter(
+    serviceWorkerUrl,
+    FIREBASE_MEASUREMENT_ID_QUERY_PARAM,
+    process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  )
+
+  return serviceWorkerUrl.toString()
+}
+
+// 오프라인 캐싱/백그라운드 알림용 SW를 등록하는 헬퍼
+export const registerFirebaseMessagingServiceWorker = async () => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[sw] Service Worker API is not available')
+    return null
+  }
+
+  try {
+    const serviceWorkerUrl = buildFirebaseMessagingServiceWorkerUrl()
+    return await navigator.serviceWorker.register(serviceWorkerUrl)
+  } catch (error) {
+    console.error('[sw] failed to register service worker', error)
+    return null
+  }
+}
 
 // 현재 브라우저/환경에서 안전하게 Messaging 인스턴스를 가져오는 헬퍼
 const getMessagingSafe = async (): Promise<Messaging | null> => {
@@ -134,7 +203,12 @@ export const requestFcmPermissionAndToken = async () => {
 
   try {
     // FCM 백그라운드 수신을 위한 서비스워커 등록
-    const serviceWorkerRegistration = await navigator.serviceWorker.register(FCM_SW_PATH)
+    const serviceWorkerRegistration = await registerFirebaseMessagingServiceWorker()
+    if (!serviceWorkerRegistration) {
+      console.warn('[fcm] service worker registration is unavailable')
+      return null
+    }
+
     const vapidKeyValidationResult = validateVapidKey(FIREBASE_VAPID_KEY)
     if (!vapidKeyValidationResult.ok) {
       console.error('[fcm] invalid vapid key', {
