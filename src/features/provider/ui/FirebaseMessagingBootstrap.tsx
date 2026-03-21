@@ -14,6 +14,11 @@ const ENABLE_FCM = process.env.NEXT_PUBLIC_ENABLE_FCM === 'true'
 const DEFAULT_NOTIFICATION_TITLE = 'MINE'
 const DEFAULT_NOTIFICATION_PATH = '/main'
 const OPEN_NOTIFICATION_ACTION_LABEL = '열기'
+const FCM_DEBUG_PREFIX = '[fcm-debug]'
+const LAST_FCM_RECEIVED_AT_STORAGE_KEY = 'last_fcm_received_at'
+const LAST_FCM_RECEIVED_SOURCE_STORAGE_KEY = 'last_fcm_received_source'
+const LAST_FCM_PAYLOAD_STORAGE_KEY = 'last_fcm_payload'
+const BACKGROUND_RECEIVED_MESSAGE_TYPE = 'fcm_background_received'
 
 type ForegroundNotificationPayload = {
   title: string
@@ -38,10 +43,46 @@ const navigateToNotificationPath = (path: string) => {
   window.location.assign(targetUrl)
 }
 
+const persistLastFcmReceived = (params: {
+  source: 'foreground' | 'background'
+  payload: unknown
+  receivedAt?: string
+}) => {
+  const receivedAt = params.receivedAt ?? new Date().toISOString()
+
+  localStorage.setItem(LAST_FCM_RECEIVED_AT_STORAGE_KEY, receivedAt)
+  localStorage.setItem(LAST_FCM_RECEIVED_SOURCE_STORAGE_KEY, params.source)
+  localStorage.setItem(LAST_FCM_PAYLOAD_STORAGE_KEY, JSON.stringify(params.payload))
+}
+
 export function FirebaseMessagingBootstrap() {
   useEffect(() => {
     // 알림 권한과 무관하게 SW를 먼저 등록해 오프라인 캐싱을 활성화합니다.
     void registerFirebaseMessagingServiceWorker()
+  }, [])
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) {
+      return
+    }
+
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type !== BACKGROUND_RECEIVED_MESSAGE_TYPE) {
+        return
+      }
+
+      console.info(`${FCM_DEBUG_PREFIX} background message received`, event.data)
+      persistLastFcmReceived({
+        source: 'background',
+        payload: event.data.payload,
+        receivedAt: event.data.receivedAt,
+      })
+    }
+
+    navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage)
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage)
+    }
   }, [])
 
   useEffect(() => {
@@ -56,6 +97,9 @@ export function FirebaseMessagingBootstrap() {
     const initializeFirebaseMessaging = async () => {
       // 앱 foreground 상태 메시지 구독
       unsubscribe = await subscribeForegroundMessage((payload) => {
+        console.info(`${FCM_DEBUG_PREFIX} foreground message received`, payload)
+        persistLastFcmReceived({ source: 'foreground', payload })
+
         const { title, content, path } = resolveForegroundNotificationPayload(payload)
 
         toast.info(title, {

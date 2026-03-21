@@ -17,6 +17,8 @@ const FIREBASE_STORAGE_BUCKET_QUERY_PARAM = 'firebaseStorageBucket'
 const FIREBASE_MESSAGING_SENDER_ID_QUERY_PARAM = 'firebaseMessagingSenderId'
 const FIREBASE_APP_ID_QUERY_PARAM = 'firebaseAppId'
 const FIREBASE_MEASUREMENT_ID_QUERY_PARAM = 'firebaseMeasurementId'
+const FCM_SW_DEBUG_PREFIX = '[fcm-sw]'
+const BACKGROUND_RECEIVED_MESSAGE_TYPE = 'fcm_background_received'
 
 const readRegistrationQueryParameter = (key) => {
   const serviceWorkerUrl = new URL(self.location.href)
@@ -48,6 +50,18 @@ const hasValidFirebaseConfig =
   !isPlaceholderValue(FIREBASE_CONFIG.apiKey) &&
   !isPlaceholderValue(FIREBASE_CONFIG.messagingSenderId) &&
   !isPlaceholderValue(FIREBASE_CONFIG.projectId)
+
+const notifyClientsBackgroundReceived = async (payload, receivedAt) => {
+  const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+
+  for (const client of clientList) {
+    client.postMessage({
+      type: BACKGROUND_RECEIVED_MESSAGE_TYPE,
+      payload,
+      receivedAt,
+    })
+  }
+}
 
 const isSuccessfulResponse = (response) =>
   response.status >= HTTP_STATUS_OK_MIN && response.status <= HTTP_STATUS_REDIRECT_MAX
@@ -178,6 +192,11 @@ if (hasValidFirebaseConfig) {
 
     // 앱이 백그라운드일 때 수신한 FCM 메시지를 처리합니다.
     messaging.onBackgroundMessage((payload) => {
+      const receivedAt = new Date().toISOString()
+      console.info(`${FCM_SW_DEBUG_PREFIX} background message received`, { receivedAt, payload })
+
+      void notifyClientsBackgroundReceived(payload, receivedAt)
+
       // 서버에서 전달한 payload.data 스키마를 기준으로 수신합니다.
       const data = payload?.data ?? {}
       const title = data.title ?? 'MINE'
@@ -198,6 +217,8 @@ if (hasValidFirebaseConfig) {
   } catch (error) {
     console.error('[sw] firebase messaging initialization failed', error)
   }
+} else {
+  console.warn(`${FCM_SW_DEBUG_PREFIX} firebase config is invalid`)
 }
 
 self.addEventListener('fetch', (event) => {
@@ -219,6 +240,21 @@ self.addEventListener('fetch', (event) => {
   if (isCacheableStaticAsset(requestUrl)) {
     event.respondWith(handleStaticAssetRequest(request))
   }
+})
+
+self.addEventListener('push', (event) => {
+  let payloadText = ''
+
+  try {
+    payloadText = event.data?.text() ?? ''
+  } catch {
+    payloadText = '[unreadable]'
+  }
+
+  console.info(`${FCM_SW_DEBUG_PREFIX} push event received`, {
+    hasData: Boolean(event.data),
+    payloadText,
+  })
 })
 
 // 사용자가 알림을 클릭했을 때 앱 이동/포커싱을 처리합니다.
