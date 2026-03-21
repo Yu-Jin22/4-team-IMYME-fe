@@ -10,27 +10,31 @@ const STATIC_ASSET_PATHS = ['/logo.png', '/manifest.webmanifest']
 const CACHEABLE_NAVIGATION_PATHS = new Set(['/login', '/offline'])
 const HTTP_STATUS_OK_MIN = 200
 const HTTP_STATUS_REDIRECT_MAX = 399
+const FIREBASE_API_KEY_QUERY_PARAM = 'firebaseApiKey'
+const FIREBASE_AUTH_DOMAIN_QUERY_PARAM = 'firebaseAuthDomain'
+const FIREBASE_PROJECT_ID_QUERY_PARAM = 'firebaseProjectId'
+const FIREBASE_STORAGE_BUCKET_QUERY_PARAM = 'firebaseStorageBucket'
+const FIREBASE_MESSAGING_SENDER_ID_QUERY_PARAM = 'firebaseMessagingSenderId'
+const FIREBASE_APP_ID_QUERY_PARAM = 'firebaseAppId'
+const FIREBASE_MEASUREMENT_ID_QUERY_PARAM = 'firebaseMeasurementId'
 
-const readEnvironmentVariable = (key) => {
-  if (typeof process === 'undefined' || !process?.env) {
-    return undefined
-  }
+const readRegistrationQueryParameter = (key) => {
+  const serviceWorkerUrl = new URL(self.location.href)
+  const value = serviceWorkerUrl.searchParams.get(key)
 
-  const value = process.env[key]
-  return typeof value === 'string' ? value : undefined
+  return value ?? undefined
 }
 
-// 프로젝트 Firebase 설정값입니다.
-// TODO: 실제 프로젝트 값으로 교체하세요.
+// 서비스워커 등록 URL 쿼리에서 Firebase 설정을 읽습니다.
 const FIREBASE_CONFIG = {
   // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  apiKey: readEnvironmentVariable('NEXT_PUBLIC_FIREBASE_API_KEY'),
-  authDomain: readEnvironmentVariable('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN'),
-  projectId: readEnvironmentVariable('NEXT_PUBLIC_FIREBASE_PROJECT_ID'),
-  storageBucket: readEnvironmentVariable('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET'),
-  messagingSenderId: readEnvironmentVariable('NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'),
-  appId: readEnvironmentVariable('NEXT_PUBLIC_FIREBASE_APP_ID'),
-  measurementId: readEnvironmentVariable('NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID'),
+  apiKey: readRegistrationQueryParameter(FIREBASE_API_KEY_QUERY_PARAM),
+  authDomain: readRegistrationQueryParameter(FIREBASE_AUTH_DOMAIN_QUERY_PARAM),
+  projectId: readRegistrationQueryParameter(FIREBASE_PROJECT_ID_QUERY_PARAM),
+  storageBucket: readRegistrationQueryParameter(FIREBASE_STORAGE_BUCKET_QUERY_PARAM),
+  messagingSenderId: readRegistrationQueryParameter(FIREBASE_MESSAGING_SENDER_ID_QUERY_PARAM),
+  appId: readRegistrationQueryParameter(FIREBASE_APP_ID_QUERY_PARAM),
+  measurementId: readRegistrationQueryParameter(FIREBASE_MEASUREMENT_ID_QUERY_PARAM),
 }
 
 // 설정값이 placeholder 상태인지 검사하는 유틸입니다.
