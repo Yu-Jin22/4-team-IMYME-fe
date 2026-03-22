@@ -10,7 +10,8 @@ import { useTodayChallenge } from '../model/useTodayChallenge'
 
 const CHALLENGE_PAGE_PATH = '/challenge'
 const CLOSED_CHALLENGE_ERROR_PREFIX = 'challenge_not_open'
-const SUBMITTED_PARTICIPATION_STATUS = 'UPLOADED'
+const UPLOADED_PARTICIPATION_STATUS = 'UPLOADED'
+const PROCESSING_PARTICIPATION_STATUS = 'PROCESSING'
 const CHALLENGE_STATUS_CHECK_FAILED_MESSAGE = '챌린지는 매일 22:00에 오픈됩니다!'
 const CHALLENGE_NOT_OPEN_FALLBACK_MESSAGE = '챌린지가 열리지 않았습니다.'
 const CHALLENGE_ALREADY_SUBMITTED_MESSAGE = '이미 오늘 챌린지에 참여했습니다.'
@@ -41,7 +42,10 @@ export function ChallengeModeButton() {
       return
     }
 
-    if (todayChallengeResult.data.myParticipation?.status === SUBMITTED_PARTICIPATION_STATUS) {
+    if (
+      todayChallengeResult.data.myParticipation?.status === UPLOADED_PARTICIPATION_STATUS ||
+      todayChallengeResult.data.myParticipation?.status === PROCESSING_PARTICIPATION_STATUS
+    ) {
       toast.info(CHALLENGE_ALREADY_SUBMITTED_MESSAGE)
       return
     }
