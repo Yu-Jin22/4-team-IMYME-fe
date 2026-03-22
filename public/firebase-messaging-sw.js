@@ -1,7 +1,7 @@
 // 이 파일은 브라우저 메인 스레드가 아니라 Service Worker 스레드에서 실행됨.
 // FCM 백그라운드 메시지 수신/알림 표시를 담당.
 
-const CACHE_VERSION = 'v1'
+const CACHE_VERSION = 'v2'
 const NAVIGATION_CACHE_NAME = `mine-navigation-${CACHE_VERSION}`
 const STATIC_ASSET_CACHE_NAME = `mine-static-${CACHE_VERSION}`
 const OFFLINE_FALLBACK_PATH = '/offline'
@@ -66,9 +66,9 @@ const notifyClientsBackgroundReceived = async (payload, receivedAt) => {
 const isSuccessfulResponse = (response) =>
   response.status >= HTTP_STATUS_OK_MIN && response.status <= HTTP_STATUS_REDIRECT_MAX
 
-const isCacheableStaticAsset = (requestUrl) =>
-  requestUrl.pathname.startsWith('/_next/static/') ||
-  STATIC_ASSET_PATHS.includes(requestUrl.pathname)
+// Next.js 빌드 산출물(_next/static)은 배포마다 바뀌므로 SW 캐시에서 제외한다.
+// cache-first로 잡으면 서버 HTML과 구버전 JS가 섞여 hydration mismatch가 발생할 수 있다.
+const isCacheableStaticAsset = (requestUrl) => STATIC_ASSET_PATHS.includes(requestUrl.pathname)
 
 const isCacheableNavigationPath = (requestUrl) =>
   CACHEABLE_NAVIGATION_PATHS.has(requestUrl.pathname)
