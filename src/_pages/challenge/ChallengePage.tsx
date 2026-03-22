@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 
+import { useChallengeParticipantsCountStream } from '@/features/challenge/model/useChallengeParticipantsCountStream'
 import { useChallengeRecordController } from '@/features/challenge/model/useChallengeRecordController'
 import { useTodayChallenge } from '@/features/challenge/model/useTodayChallenge'
 import { ChallengeKeywordCard } from '@/features/challenge/ui/ChallengeKeywordCard'
@@ -47,7 +48,8 @@ export function ChallengePage() {
   const hasHandledQueryErrorRef = useRef(false)
   const hasReplacedAfterSubmissionRef = useRef(false)
   const todayChallengeQuery = useTodayChallenge()
-  const challengeId = todayChallengeQuery.data?.id ?? null
+  const todayChallenge = todayChallengeQuery.data
+  const challengeId = todayChallenge?.id ?? null
   const {
     handleMicClick,
     handleRecordingComplete,
@@ -58,10 +60,19 @@ export function ChallengePage() {
     isSubmittingFeedback,
     isSubmissionCompleted,
     canSubmitRecording,
-  } = useChallengeRecordController({ challengeId })
+  } = useChallengeRecordController({
+    challengeId,
+    challengeEndAt: todayChallenge?.endAt ?? null,
+  })
   const shouldRedirectToMain =
     todayChallengeQuery.isError || (!todayChallengeQuery.isLoading && !todayChallengeQuery.data)
   const shouldRenderSkeleton = todayChallengeQuery.isLoading || shouldRedirectToMain
+  const participantCount = useChallengeParticipantsCountStream({
+    challengeId,
+    initialParticipantCount: todayChallengeQuery.data?.participantCount ?? null,
+    shouldConnect: !shouldRenderSkeleton,
+    shouldStop: isRecording,
+  })
   const statusMessage = getChallengeStatusMessage({
     isLoading: todayChallengeQuery.isLoading,
     isError: todayChallengeQuery.isError,
@@ -90,8 +101,6 @@ export function ChallengePage() {
   const handleBack = () => {
     router.back()
   }
-
-  const todayChallenge = todayChallengeQuery.data
 
   return (
     <div className="flex h-full w-full flex-1 flex-col">
@@ -134,10 +143,7 @@ export function ChallengePage() {
                 녹음 완료 및 제출하기
               </Button>
               <div className="border-primary mt-6 flex min-h-12.5 min-w-87.5 items-center justify-center rounded-xl border text-center">
-                <p>
-                  {`현재 챌린지에 
-                  ${todayChallenge?.participantCount ?? ''}명이 도전 중입니다!`}
-                </p>
+                <p>{`현재 챌린지에 ${participantCount ?? ''}명이 도전 중입니다!`}</p>
               </div>
             </div>
           </>
