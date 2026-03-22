@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import DefaultAvatar from '@/shared/assets/images/default-avatar.svg'
 
+import { MY_PROFILE_QUERY_KEY } from '../model/myProfileQueryKey'
 import { useProfile, useSetProfile } from '../model/useUserStore'
 
 import type { UserProfile } from '../model/userProfile'
@@ -23,8 +24,6 @@ const KAKAO_CDN_HTTPS_PREFIX = 'https://k.kakaocdn.net'
 const S3_HTTP_PREFIX = 'http://imymemine1.s3.ap-northeast-2.amazonaws.com'
 const S3_HTTPS_PREFIX = 'https://imymemine1.s3.ap-northeast-2.amazonaws.com'
 const PLACEHOLDER_CLASSNAME = 'absolute inset-0 rounded-full bg-secondary/60'
-const MY_PROFILE_QUERY_KEY = ['myProfile'] as const
-
 const isS3PresignedUrl = (src: string) => {
   if (!src) return false
   try {
