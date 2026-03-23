@@ -1,8 +1,13 @@
 'use client'
 
+import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getChallengeParticipantsStream } from '../api/getChallengeParticipantsStream'
+
+const PAGE_HIDE_EVENT_NAME = 'pagehide'
+const PAGE_SHOW_EVENT_NAME = 'pageshow'
+const BEFORE_UNLOAD_EVENT_NAME = 'beforeunload'
 
 type UseChallengeParticipantsCountStreamParams = {
   challengeId: number | null
@@ -22,12 +27,21 @@ export function useChallengeParticipantsCountStream({
   shouldConnect,
   shouldStop,
 }: UseChallengeParticipantsCountStreamParams): number | null {
+  const pathname = usePathname()
   const [streamParticipantCount, setStreamParticipantCount] =
     useState<StreamParticipantCount | null>(null)
+  const [reconnectTrigger, setReconnectTrigger] = useState(0)
   const participantStreamRef = useRef<EventSource | null>(null)
   const hasStoppedParticipantStreamRef = useRef(false)
+  const isChallengeDetailPath =
+    challengeId !== null ? pathname === `/challenge/${challengeId}` : false
   const closeParticipantStream = useCallback(() => {
-    participantStreamRef.current?.close()
+    const participantStream = participantStreamRef.current
+    if (!participantStream) return
+
+    participantStream.onopen = null
+    participantStream.onerror = null
+    participantStream.close()
     participantStreamRef.current = null
   }, [])
 
@@ -39,6 +53,7 @@ export function useChallengeParticipantsCountStream({
   useEffect(() => {
     if (!challengeId) return
     if (!shouldConnect) return
+    if (!isChallengeDetailPath) return
     if (hasStoppedParticipantStreamRef.current) return
     if (participantStreamRef.current) return
 
@@ -47,9 +62,6 @@ export function useChallengeParticipantsCountStream({
       {
         onCount: (nextCount) => {
           setStreamParticipantCount({ challengeId, count: nextCount })
-        },
-        onError: () => {
-          closeParticipantStream()
         },
       },
     )
@@ -63,7 +75,7 @@ export function useChallengeParticipantsCountStream({
     return () => {
       closeParticipantStream()
     }
-  }, [challengeId, closeParticipantStream, shouldConnect])
+  }, [challengeId, closeParticipantStream, isChallengeDetailPath, reconnectTrigger, shouldConnect])
 
   useEffect(() => {
     if (!shouldStop) return
@@ -76,16 +88,29 @@ export function useChallengeParticipantsCountStream({
     const handlePageLeave = () => {
       closeParticipantStream()
     }
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // bfcache에서 복원된 경우, 이미 닫힌 SSE를 다시 연결하도록 트리거한다.
+      if (!event.persisted) return
+      setReconnectTrigger((prev) => prev + 1)
+    }
 
-    window.addEventListener('pagehide', handlePageLeave)
-    window.addEventListener('beforeunload', handlePageLeave)
+    window.addEventListener(PAGE_HIDE_EVENT_NAME, handlePageLeave)
+    window.addEventListener(BEFORE_UNLOAD_EVENT_NAME, handlePageLeave)
+    window.addEventListener(PAGE_SHOW_EVENT_NAME, handlePageShow)
 
     return () => {
-      window.removeEventListener('pagehide', handlePageLeave)
-      window.removeEventListener('beforeunload', handlePageLeave)
+      window.removeEventListener(PAGE_HIDE_EVENT_NAME, handlePageLeave)
+      window.removeEventListener(BEFORE_UNLOAD_EVENT_NAME, handlePageLeave)
+      window.removeEventListener(PAGE_SHOW_EVENT_NAME, handlePageShow)
       closeParticipantStream()
     }
   }, [closeParticipantStream])
+
+  useEffect(() => {
+    return () => {
+      closeParticipantStream()
+    }
+  }, [closeParticipantStream, pathname])
 
   if (streamParticipantCount?.challengeId === challengeId) {
     return streamParticipantCount.count
