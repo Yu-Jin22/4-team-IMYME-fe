@@ -4,14 +4,13 @@ type GetChallengeParticipantsStreamParams = {
   challengeId: number
 }
 
-export type ChallengeParticipantsStreamPayload = unknown
 export type ChallengeParticipantsCountPayload = {
   count: number
 }
 
 type GetChallengeParticipantsStreamOptions = {
   onCount: (count: number) => void
-  onMessage?: (payload: ChallengeParticipantsStreamPayload) => void
+  onOpen?: () => void
   onError?: (event: Event) => void
 }
 
@@ -33,7 +32,7 @@ const createChallengeParticipantsStreamUrl = (challengeId: number) =>
     url: createChallengeParticipantsStreamPath(challengeId),
   })
 
-const parseChallengeParticipantsStreamData = (data: string): ChallengeParticipantsStreamPayload => {
+const parseChallengeParticipantsStreamData = (data: string): unknown => {
   try {
     return JSON.parse(data)
   } catch {
@@ -43,14 +42,42 @@ const parseChallengeParticipantsStreamData = (data: string): ChallengeParticipan
 
 const parseChallengeParticipantsCountPayload = (
   value: unknown,
+  expectedEventName?: string,
 ): { ok: true; data: ChallengeParticipantsCountPayload } | { ok: false; reason: string } => {
   if (!value || typeof value !== 'object') {
     return { ok: false, reason: REQUEST_FAILED_REASON }
   }
 
-  const payload = value as { count?: unknown }
-  if (typeof payload.count !== 'number') {
+  const payload = value as {
+    count?: unknown
+    event?: unknown
+    type?: unknown
+    data?: unknown
+  }
+
+  const eventNameFromPayload =
+    typeof payload.event === 'string'
+      ? payload.event
+      : typeof payload.type === 'string'
+        ? payload.type
+        : undefined
+
+  if (expectedEventName && eventNameFromPayload && eventNameFromPayload !== expectedEventName) {
     return { ok: false, reason: REQUEST_FAILED_REASON }
+  }
+
+  if (typeof payload.count !== 'number') {
+    const nestedData = payload.data
+    if (!nestedData || typeof nestedData !== 'object') {
+      return { ok: false, reason: REQUEST_FAILED_REASON }
+    }
+
+    const nestedCount = (nestedData as { count?: unknown }).count
+    if (typeof nestedCount !== 'number') {
+      return { ok: false, reason: REQUEST_FAILED_REASON }
+    }
+
+    return { ok: true, data: { count: nestedCount } }
   }
 
   return { ok: true, data: { count: payload.count } }
@@ -58,7 +85,7 @@ const parseChallengeParticipantsCountPayload = (
 
 export function getChallengeParticipantsStream(
   params: GetChallengeParticipantsStreamParams,
-  { onCount, onMessage, onError }: GetChallengeParticipantsStreamOptions,
+  { onCount, onOpen, onError }: GetChallengeParticipantsStreamOptions,
 ): GetChallengeParticipantsStreamResult {
   if (!params.challengeId) {
     return { ok: false, reason: INVALID_PARAMS_REASON }
@@ -66,14 +93,13 @@ export function getChallengeParticipantsStream(
 
   try {
     const eventSource = new EventSource(createChallengeParticipantsStreamUrl(params.challengeId))
-
-    eventSource.onmessage = (event) => {
-      onMessage?.(parseChallengeParticipantsStreamData(event.data))
+    eventSource.onopen = () => {
+      onOpen?.()
     }
 
     const handleCountEvent = (event: MessageEvent<string>) => {
       const payload = parseChallengeParticipantsStreamData(event.data)
-      const parsedCountPayload = parseChallengeParticipantsCountPayload(payload)
+      const parsedCountPayload = parseChallengeParticipantsCountPayload(payload, COUNT_EVENT_NAME)
       if (!parsedCountPayload.ok) {
         return
       }
